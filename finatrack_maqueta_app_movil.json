@@ -1,0 +1,428 @@
+{
+  "project": {
+    "app_name": "FinaTrack",
+    "formal_name": "FinaTrack - Sistema de asistencia geolocalizada",
+    "brand_context": {
+      "company": "Finhold",
+      "brand_pattern": "La empresa usa nombres con sello Fin/Fina, como Finatech, Finamedic y Finhold.",
+      "purpose": "Aplicación móvil para que usuarios registren asistencia con geolocalización, evidencia y control de jornada."
+    },
+    "main_objective": "Diseñar las vistas principales de una app móvil donde el trabajador pueda marcar entrada, iniciar descanso, finalizar descanso, marcar salida y reportar incidencias."
+  },
+  "target_users": [
+    {
+      "role": "Trabajador / Usuario",
+      "description": "Persona que usa la app móvil para registrar su asistencia diaria."
+    },
+    {
+      "role": "Supervisor",
+      "description": "Persona que revisa reportes, incidencias y asistencias observadas."
+    },
+    {
+      "role": "Administrador",
+      "description": "Persona que gestiona usuarios, horarios, sedes y reportes desde un panel web o administrativo."
+    }
+  ],
+  "mobile_app_scope": {
+    "current_focus": "Maquetar y definir las vistas móviles para las funcionalidades principales.",
+    "important_note": "En esta etapa no se está desarrollando todo el sistema completo, sino la estructura visual y funcional de la app móvil."
+  },
+  "main_actions": [
+    {
+      "id": "mark_entry",
+      "name": "Marcar entrada",
+      "description": "Permite al usuario registrar el inicio de su jornada laboral.",
+      "required_data": [
+        "fecha",
+        "hora del servidor",
+        "latitud",
+        "longitud",
+        "dirección aproximada",
+        "selfie o foto de evidencia",
+        "estado de ubicación",
+        "dispositivo usado"
+      ],
+      "button_label": "Marcar entrada",
+      "screen_title": "Registrar entrada",
+      "recommended_icon": "login, location_on, fingerprint o camera_alt"
+    },
+    {
+      "id": "start_break",
+      "name": "Iniciar descanso",
+      "description": "Permite registrar el inicio del descanso o refrigerio del trabajador.",
+      "required_data": [
+        "fecha",
+        "hora del servidor",
+        "latitud",
+        "longitud",
+        "estado actual de jornada"
+      ],
+      "optional_data": [
+        "comentario o motivo"
+      ],
+      "button_label": "Iniciar descanso",
+      "screen_title": "Inicio de descanso",
+      "recommended_icon": "coffee, pause_circle o free_breakfast"
+    },
+    {
+      "id": "end_break",
+      "name": "Finalizar descanso",
+      "description": "Permite registrar el momento en que el trabajador termina su descanso y retoma actividades.",
+      "required_data": [
+        "fecha",
+        "hora del servidor",
+        "latitud",
+        "longitud",
+        "estado actual de jornada"
+      ],
+      "button_label": "Finalizar descanso",
+      "screen_title": "Fin de descanso",
+      "recommended_icon": "play_circle, work o timer"
+    },
+    {
+      "id": "mark_exit",
+      "name": "Marcar salida",
+      "description": "Permite registrar el cierre de la jornada laboral.",
+      "required_data": [
+        "fecha",
+        "hora del servidor",
+        "latitud",
+        "longitud",
+        "dirección aproximada",
+        "selfie o foto de evidencia",
+        "estado de ubicación",
+        "dispositivo usado"
+      ],
+      "optional_data": [
+        "observación final"
+      ],
+      "button_label": "Marcar salida",
+      "screen_title": "Registrar salida",
+      "recommended_icon": "logout, exit_to_app o location_on"
+    },
+    {
+      "id": "report_incident",
+      "name": "Reportar incidencia",
+      "description": "Permite al usuario enviar una justificación o problema relacionado con su asistencia.",
+      "incident_types": [
+        "No pude marcar entrada",
+        "No pude marcar salida",
+        "GPS no disponible",
+        "Estoy fuera de zona",
+        "Problema con la cámara",
+        "Error de conexión",
+        "Otro"
+      ],
+      "required_data": [
+        "tipo de incidencia",
+        "descripción",
+        "fecha",
+        "hora del servidor",
+        "latitud",
+        "longitud"
+      ],
+      "optional_data": [
+        "foto de evidencia",
+        "archivo adjunto"
+      ],
+      "button_label": "Reportar incidencia",
+      "screen_title": "Nueva incidencia",
+      "recommended_icon": "warning, report_problem o support_agent"
+    }
+  ],
+  "screen_order": [
+    {
+      "order": 1,
+      "screen_id": "splash",
+      "screen_name": "Splash / Bienvenida",
+      "purpose": "Mostrar el logo de la app y cargar sesión inicial.",
+      "elements": [
+        "logo de FinaTrack",
+        "nombre de la app",
+        "frase corta: Asistencia geolocalizada segura",
+        "loader o animación breve"
+      ],
+      "next_screen": "login o home si ya existe sesión activa"
+    },
+    {
+      "order": 2,
+      "screen_id": "login",
+      "screen_name": "Inicio de sesión",
+      "purpose": "Permitir que el usuario ingrese con sus credenciales.",
+      "elements": [
+        "logo",
+        "campo usuario, correo o DNI",
+        "campo contraseña",
+        "botón Ingresar",
+        "enlace ¿Olvidaste tu contraseña?",
+        "mensaje de error si las credenciales son incorrectas"
+      ],
+      "next_screen": "permissions o home"
+    },
+    {
+      "order": 3,
+      "screen_id": "permissions",
+      "screen_name": "Permisos iniciales",
+      "purpose": "Solicitar permisos necesarios para que la app funcione correctamente.",
+      "elements": [
+        "permiso de ubicación GPS",
+        "permiso de cámara",
+        "permiso de notificaciones",
+        "explicación breve de por qué se requieren los permisos",
+        "botón Continuar"
+      ],
+      "next_screen": "home"
+    },
+    {
+      "order": 4,
+      "screen_id": "home",
+      "screen_name": "Inicio / Dashboard principal",
+      "purpose": "Pantalla principal desde donde el usuario realiza sus 5 acciones.",
+      "elements": [
+        "saludo con nombre del usuario",
+        "fecha actual",
+        "hora actual",
+        "estado actual de jornada",
+        "sede asignada",
+        "ubicación actual",
+        "tarjeta de estado GPS",
+        "botones de acción",
+        "barra inferior con Inicio, Historial y Perfil"
+      ],
+      "next_screen": "confirmation_action, incident, history o profile"
+    },
+    {
+      "order": 5,
+      "screen_id": "confirmation_action",
+      "screen_name": "Confirmación de acción",
+      "purpose": "Pantalla reutilizable para confirmar entrada, descanso, fin de descanso o salida.",
+      "elements": [
+        "título dinámico según acción",
+        "hora actual",
+        "ubicación detectada",
+        "mapa pequeño o ícono GPS",
+        "foto/selfie cuando aplique",
+        "comentario opcional",
+        "botón Confirmar",
+        "botón Cancelar"
+      ],
+      "next_screen": "success_result"
+    },
+    {
+      "order": 6,
+      "screen_id": "incident",
+      "screen_name": "Reportar incidencia",
+      "purpose": "Permitir que el usuario informe problemas o justifique una marcación.",
+      "elements": [
+        "selector de tipo de incidencia",
+        "campo descripción",
+        "ubicación actual",
+        "botón para adjuntar foto",
+        "botón Enviar reporte"
+      ],
+      "next_screen": "success_result"
+    },
+    {
+      "order": 7,
+      "screen_id": "success_result",
+      "screen_name": "Resultado exitoso",
+      "purpose": "Confirmar al usuario que su acción fue registrada.",
+      "elements": [
+        "ícono de éxito",
+        "mensaje de confirmación",
+        "resumen de la acción realizada",
+        "hora registrada",
+        "estado: válido, observado o pendiente",
+        "botón Volver al inicio"
+      ],
+      "next_screen": "home"
+    },
+    {
+      "order": 8,
+      "screen_id": "history",
+      "screen_name": "Historial",
+      "purpose": "Mostrar los registros de asistencia del usuario.",
+      "elements": [
+        "filtro por fecha",
+        "lista de registros",
+        "tipo de acción",
+        "hora registrada",
+        "estado",
+        "detalle de cada registro"
+      ],
+      "next_screen": "history_detail o home"
+    },
+    {
+      "order": 9,
+      "screen_id": "history_detail",
+      "screen_name": "Detalle de registro",
+      "purpose": "Mostrar información completa de una marcación o incidencia.",
+      "elements": [
+        "tipo de registro",
+        "fecha",
+        "hora",
+        "ubicación",
+        "mapa",
+        "foto de evidencia si existe",
+        "estado",
+        "observación"
+      ],
+      "next_screen": "history"
+    },
+    {
+      "order": 10,
+      "screen_id": "profile",
+      "screen_name": "Perfil",
+      "purpose": "Mostrar datos básicos del usuario y opciones de sesión.",
+      "elements": [
+        "foto del usuario",
+        "nombre completo",
+        "cargo",
+        "sede asignada",
+        "horario",
+        "estado de cuenta",
+        "botón cerrar sesión"
+      ],
+      "next_screen": "login si cierra sesión"
+    }
+  ],
+  "home_screen_layout": {
+    "top_section": [
+      "logo pequeño o nombre FinaTrack",
+      "saludo: Hola, Juan",
+      "fecha y hora actual"
+    ],
+    "middle_section": [
+      "tarjeta de estado de jornada",
+      "texto de ejemplo: Aún no marcaste entrada",
+      "ubicación detectada",
+      "sede asignada",
+      "indicador GPS activo"
+    ],
+    "actions_section": [
+      {
+        "button": "Marcar entrada",
+        "enabled_when": "usuario no tiene entrada registrada en el día"
+      },
+      {
+        "button": "Iniciar descanso",
+        "enabled_when": "usuario ya marcó entrada y no está en descanso"
+      },
+      {
+        "button": "Finalizar descanso",
+        "enabled_when": "usuario está en descanso"
+      },
+      {
+        "button": "Marcar salida",
+        "enabled_when": "usuario ya marcó entrada y no cerró jornada"
+      },
+      {
+        "button": "Reportar incidencia",
+        "enabled_when": "siempre disponible"
+      }
+    ],
+    "bottom_navigation": [
+      "Inicio",
+      "Historial",
+      "Perfil"
+    ]
+  },
+  "business_rules": [
+    {
+      "rule": "No permitir marcar asistencia si el GPS está desactivado.",
+      "reason": "La app necesita validar la ubicación real del usuario."
+    },
+    {
+      "rule": "La hora debe tomarse desde el servidor, no desde el celular.",
+      "reason": "Evita manipulación manual de hora y fecha."
+    },
+    {
+      "rule": "No permitir dos entradas seguidas en el mismo día.",
+      "reason": "Evita registros duplicados."
+    },
+    {
+      "rule": "No permitir salida si no existe entrada previa.",
+      "reason": "Mantiene el orden lógico de la jornada."
+    },
+    {
+      "rule": "Si el usuario está fuera del radio permitido, registrar como observado o solicitar incidencia.",
+      "reason": "Permite controlar asistencia sin bloquear casos especiales."
+    },
+    {
+      "rule": "Registrar el dispositivo usado.",
+      "reason": "Ayuda a detectar suplantaciones o usos sospechosos."
+    },
+    {
+      "rule": "Permitir reportar incidencia en cualquier momento.",
+      "reason": "El usuario puede tener problemas de GPS, cámara, conexión o ubicación."
+    }
+  ],
+  "attendance_states": [
+    {
+      "state": "sin_marcar",
+      "label": "Sin marcar entrada",
+      "description": "El usuario todavía no inició su jornada."
+    },
+    {
+      "state": "entrada_registrada",
+      "label": "Entrada registrada",
+      "description": "El usuario inició su jornada correctamente."
+    },
+    {
+      "state": "en_descanso",
+      "label": "En descanso",
+      "description": "El usuario inició su descanso."
+    },
+    {
+      "state": "descanso_finalizado",
+      "label": "Descanso finalizado",
+      "description": "El usuario terminó el descanso y retomó la jornada."
+    },
+    {
+      "state": "salida_registrada",
+      "label": "Salida registrada",
+      "description": "El usuario finalizó su jornada."
+    },
+    {
+      "state": "observado",
+      "label": "Observado",
+      "description": "La marcación requiere revisión por ubicación, horario u otra condición."
+    },
+    {
+      "state": "pendiente_revision",
+      "label": "Pendiente de revisión",
+      "description": "Un supervisor debe aprobar o rechazar el registro."
+    }
+  ],
+  "design_style": {
+    "visual_direction": "Corporativo, moderno, limpio y fácil de usar.",
+    "recommended_theme": "Modo oscuro elegante con acentos en color corporativo.",
+    "ui_recommendations": [
+      "botones grandes y claros",
+      "iconos reconocibles",
+      "pocos textos por pantalla",
+      "tarjetas con bordes redondeados",
+      "estado de jornada visible en la pantalla principal",
+      "feedback visual después de cada acción",
+      "diseño pensado para uso rápido en campo"
+    ],
+    "suggested_colors": {
+      "background": "negro, azul muy oscuro o gris oscuro",
+      "primary": "azul corporativo o verde tecnológico",
+      "warning": "naranja o amarillo para observaciones",
+      "danger": "rojo para incidencias",
+      "success": "verde para registros válidos"
+    }
+  },
+  "wireframe_summary": {
+    "splash": "Logo centrado, nombre FinaTrack y carga automática.",
+    "login": "Formulario simple con usuario y contraseña.",
+    "permissions": "Pantalla explicando permisos de GPS, cámara y notificaciones.",
+    "home": "Pantalla principal con saludo, estado de jornada, ubicación y cinco acciones.",
+    "confirmation_action": "Pantalla para validar hora, ubicación y evidencia antes de confirmar.",
+    "incident": "Formulario para seleccionar tipo de incidencia, escribir descripción y adjuntar foto.",
+    "history": "Lista cronológica de entradas, descansos, salidas e incidencias.",
+    "profile": "Datos del trabajador, sede, horario y cerrar sesión."
+  },
+  "prompt_for_ai": "Diseña una maqueta móvil moderna para una app llamada FinaTrack, de la empresa Finhold. La app permite registrar asistencia geolocalizada. Debe tener pantallas de splash, login, permisos, home, confirmación de acción, incidencia, historial y perfil. El home debe mostrar saludo, fecha, hora, estado de jornada, ubicación actual, sede asignada y cinco botones: Marcar entrada, Iniciar descanso, Finalizar descanso, Marcar salida y Reportar incidencia. Usa estilo corporativo moderno, oscuro, limpio, con botones grandes, tarjetas redondeadas, iconos claros y navegación inferior con Inicio, Historial y Perfil."
+}

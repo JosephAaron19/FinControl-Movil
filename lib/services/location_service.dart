@@ -7,6 +7,7 @@ class LocationService {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
+      // Intentar abrir la configuración si está desactivado
       return null;
     }
 
@@ -22,7 +23,16 @@ class LocationService {
       return null;
     }
 
-    return await Geolocator.getCurrentPosition();
+    // Usar alta precisión pero con un tiempo de espera más largo y fallback
+    try {
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 20),
+      );
+    } catch (e) {
+      print("Error obteniendo ubicación: $e");
+      return null;
+    }
   }
 
   double calculateDistance(double startLat, double startLng, double endLat, double endLng) {

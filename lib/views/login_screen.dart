@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/attendance_provider.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -12,15 +13,18 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _dniController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final ApiService _apiService = ApiService();
   bool _isLoading = false;
+  bool _rememberMe = false;
 
   void _handleLogin() async {
+    final provider = Provider.of<AttendanceProvider>(context, listen: false);
+    
     setState(() => _isLoading = true);
     
-    final success = await _apiService.login(
-      _dniController.text,
-      _passwordController.text,
+    final success = await provider.login(
+      _dniController.text.trim(),
+      _passwordController.text.trim(),
+      rememberMe: _rememberMe,
     );
 
     setState(() => _isLoading = false);
@@ -50,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const Icon(Icons.security, size: 60, color: Colors.blue),
               const SizedBox(height: 32),
               Text(
-                'Bienvenido a FinaTrack',
+                'Bienvenido a FinControl',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
@@ -74,6 +78,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   prefixIcon: const Icon(Icons.lock),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
+              ),
+              const SizedBox(height: 16),
+              CheckboxListTile(
+                title: const Text('Mantener sesión iniciada'),
+                value: _rememberMe,
+                onChanged: (bool? value) {
+                  setState(() {
+                    _rememberMe = value ?? false;
+                  });
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+                activeColor: Colors.blue,
               ),
               const SizedBox(height: 32),
               ElevatedButton(

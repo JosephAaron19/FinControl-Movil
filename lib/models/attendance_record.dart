@@ -26,4 +26,34 @@ class AttendanceRecord {
     this.incidentType,
     this.incidentDescription,
   });
+
+  factory AttendanceRecord.fromJson(Map<String, dynamic> json) {
+    final entryTime = json['hora_entrada'] != null ? DateTime.parse(json['hora_entrada']).toLocal() : null;
+    final breakStartTime = json['hora_inicio_break'] != null ? DateTime.parse(json['hora_inicio_break']).toLocal() : null;
+    final breakEndTime = json['hora_fin_break'] != null ? DateTime.parse(json['hora_fin_break']).toLocal() : null;
+    final exitTime = json['hora_salida'] != null ? DateTime.parse(json['hora_salida']).toLocal() : null;
+    final String backendStatus = json['estado'] ?? 'Sin Marcar';
+
+    return AttendanceRecord(
+      date: DateTime.parse(json['fecha']),
+      entryTime: entryTime,
+      breakStartTime: breakStartTime,
+      breakEndTime: breakEndTime,
+      exitTime: exitTime,
+      status: _inferStatus(backendStatus, entryTime, breakStartTime, breakEndTime, exitTime),
+      sede: json['sede_nombre'] ?? "Sede Central",
+      latitude: json['latitud_entrada'] != null ? double.parse(json['latitud_entrada'].toString()) : null,
+      longitude: json['longitud_entrada'] != null ? double.parse(json['longitud_entrada'].toString()) : null,
+    );
+  }
+
+  static AttendanceStatus _inferStatus(String backendStatus, DateTime? entry, DateTime? breakStart, DateTime? breakEnd, DateTime? exit) {
+    if (exit != null) return AttendanceStatus.salidaRegistrada;
+    if (breakEnd != null) return AttendanceStatus.descansoFinalizado;
+    if (breakStart != null) return AttendanceStatus.enDescanso;
+    if (entry != null) {
+      return backendStatus == 'Observado' ? AttendanceStatus.observado : AttendanceStatus.entradaRegistrada;
+    }
+    return AttendanceStatus.sinMarcar;
+  }
 }

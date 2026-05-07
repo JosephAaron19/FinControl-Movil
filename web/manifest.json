@@ -1,6 +1,6 @@
 {
-    "name": "finatrack",
-    "short_name": "finatrack",
+    "name": "FinControl",
+    "short_name": "FinControl",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

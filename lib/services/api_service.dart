@@ -1,26 +1,52 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // 10.0.2.2 es la IP para acceder a localhost desde el emulador de Android
   static const String baseUrl = 'http://10.0.2.2:8000/api';
-  
-  String? _token;
 
-  Future<bool> login(String dni, String password) async {
+  String? _token;
+  String? get token => _token;
+
+  Future<void> _saveTokens(String accessToken, String refreshToken) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', accessToken);
+    await prefs.setString('refresh_token', refreshToken);
+  }
+
+  Future<bool> loadToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    _token = prefs.getString('auth_token');
+    return _token != null;
+  }
+
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    await prefs.remove('refresh_token');
+    await prefs.remove('remember_me');
+    await prefs.remove('cached_user_profile');
+    _token = null;
+  }
+
+  Future<bool> login(String dni, String password, {bool rememberMe = false}) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/token/'),
+        Uri.parse('$baseUrl/auth/login/'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'dni': dni,
-          'password': password,
-        }),
-      );
+        body: jsonEncode({'dni': dni, 'password': password}),
+      ).timeout(const Duration(seconds: 10));
+      print('Login response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         _token = data['access'];
+        final refreshToken = data['refresh'] ?? '';
+        await _saveTokens(_token!, refreshToken);
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('remember_me', rememberMe);
         return true;
       }
       return false;
@@ -31,7 +57,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>?> markAttendance({
-    required String type, // 'entrada', 'salida', 'inicio_break', 'fin_break'
+    required String type, // 'ENTRADA', 'SALIDA', 'INICIO_BREAK', 'FIN_BREAK'
     double? lat,
     double? lng,
     String? deviceInfo,
@@ -40,18 +66,18 @@ class ApiService {
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/asistencias/marcar/'),
+        Uri.parse('$baseUrl/attendance/event/'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $_token',
         },
         body: jsonEncode({
-          'tipo': type,
+          'type': type.toUpperCase(),
           'latitud': lat,
           'longitud': lng,
-          'dispositivo_info': deviceInfo,
+          'device_info': deviceInfo,
         }),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -63,16 +89,50 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>?> getUserProfile() async {
+    if (_token == null) return null;
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/auth/profile/'),
+        headers: {'Authorization': 'Bearer $_token'},
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        // Cache the profile for offline access
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cached_user_profile', jsonEncode(data));
+        return data;
+      }
+      return null;
+    } catch (e) {
+      print('Error al obtener perfil: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getCachedUserProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedStr = prefs.getString('cached_user_profile');
+      if (cachedStr != null) {
+        return jsonDecode(cachedStr);
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<List<dynamic>> getHistory() async {
     if (_token == null) return [];
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/asistencias/historial/'),
-        headers: {
-          'Authorization': 'Bearer $_token',
-        },
-      );
+        Uri.parse('$baseUrl/attendance/history/'),
+        headers: {'Authorization': 'Bearer $_token'},
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -81,6 +141,112 @@ class ApiService {
     } catch (e) {
       print('Error al obtener historial: $e');
       return [];
+    }
+  }
+
+  Future<bool> reportIncident({
+    required String type,
+    required String description,
+    double? lat,
+    double? lng,
+    String? deviceInfo,
+    String? photoPath,
+  }) async {
+    if (_token == null) return false;
+
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/incidents/create/'));
+      
+      request.headers.addAll({
+        'Authorization': 'Bearer $_token',
+      });
+
+      request.fields['tipo_incidencia'] = type;
+      request.fields['descripcion'] = description;
+      if (lat != null) request.fields['latitud'] = lat.toString();
+      if (lng != null) request.fields['longitud'] = lng.toString();
+      if (deviceInfo != null) request.fields['dispositivo_info'] = deviceInfo;
+
+      if (photoPath != null) {
+        request.files.add(await http.MultipartFile.fromPath('foto_evidencia_url', photoPath));
+      }
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      print('Incident response: ${response.body}');
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      print('Error al reportar incidencia: $e');
+      return false;
+    }
+  }
+  Future<Map<String, dynamic>?> getTrackingConfig() async {
+    if (_token == null) return null;
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/configuracion-tracking/'),
+        headers: {'Authorization': 'Bearer $_token'},
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<bool> sendTrackingPoint({
+    required int asistenciaId,
+    required int historialJornadaId,
+    required double lat,
+    required double lng,
+    double? precision,
+    int? bateria,
+    String? deviceInfo,
+  }) async {
+    if (_token == null) return false;
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/ubicacion-puntos/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+        body: jsonEncode({
+          'asistencia': asistenciaId,
+          'historial_jornada_id': historialJornadaId,
+          'latitud': lat,
+          'longitud': lng,
+          'precision_metros': precision,
+          'bateria_porcentaje': bateria,
+          'dispositivo_info': deviceInfo,
+          'origen': 'servicio_background',
+        }),
+      ).timeout(const Duration(seconds: 10));
+      return response.statusCode == 201;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> checkSyncStatus(String? lastSyncTimestamp) async {
+    if (_token == null) return null;
+    try {
+      Uri uri = Uri.parse('$baseUrl/sync/');
+      if (lastSyncTimestamp != null) {
+        uri = uri.replace(queryParameters: {'last_sync': lastSyncTimestamp});
+      }
+      final response = await http.get(
+        uri,
+        headers: {'Authorization': 'Bearer $_token'},
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Error al verificar sync: $e');
+      return null;
     }
   }
 }

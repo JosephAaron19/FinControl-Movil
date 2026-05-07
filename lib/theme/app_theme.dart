@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class FinaTrackTheme {
+class FinControlTheme {
   static const Color primaryBlue = Color(0xFF2196F3);
   static const Color techGreen = Color(0xFF4CAF50);
   static const Color darkBackground = Color(0xFF121212);

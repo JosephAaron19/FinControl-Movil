@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/attendance_provider.dart';
 import 'login_screen.dart';
+import 'home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,16 +15,32 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigateToLogin();
+    _navigateToNext();
   }
 
-  Future<void> _navigateToLogin() async {
-    await Future.delayed(const Duration(seconds: 3));
+  Future<void> _navigateToNext() async {
+    final provider = Provider.of<AttendanceProvider>(context, listen: false);
+    
+    // Iniciar ambos a la vez: tiempo mínimo de espera (para UX) y carga de sesión persistente
+    await Future.wait([
+      Future.delayed(const Duration(seconds: 2)),
+      provider.checkPersistentSession(),
+    ]);
+    
     if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
+    
+    // Si la sesión persistente cargó el perfil correctamente, vamos al Home
+    if (provider.userProfile != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    }
   }
 
   @override
@@ -34,7 +53,7 @@ class _SplashScreenState extends State<SplashScreen> {
             const Icon(Icons.location_on, size: 80, color: Colors.blue),
             const SizedBox(height: 20),
             Text(
-              'FinaTrack',
+              'FinControl',
               style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Colors.white,

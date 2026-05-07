@@ -49,69 +49,119 @@ class HomeContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final attendanceProvider = Provider.of<AttendanceProvider>(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('FinaTrack'),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.account_circle, size: 28),
-            onSelected: (value) {
-              if (value == 'logout') {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  (route) => false,
-                );
-              }
-            },
-            itemBuilder: (BuildContext context) => [
-              const PopupMenuItem<String>(
-                value: 'profile',
-                child: Row(
-                  children: [
-                    Icon(Icons.person, size: 20),
-                    SizedBox(width: 8),
-                    Text('Mi Perfil'),
-                  ],
-                ),
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(
+            title: const Text('FinControl'),
+            actions: [
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.account_circle, size: 28),
+                onSelected: (value) {
+                  if (value == 'logout') {
+                    Provider.of<AttendanceProvider>(context, listen: false).logout();
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                      (route) => false,
+                    );
+                  } else if (value == 'reset') {
+                    Provider.of<AttendanceProvider>(context, listen: false).resetToday();
+                  }
+                },
+                itemBuilder: (BuildContext context) => [
+                  const PopupMenuItem<String>(
+                    value: 'profile',
+                    child: Row(
+                      children: [
+                        Icon(Icons.person, size: 20),
+                        SizedBox(width: 8),
+                        Text('Mi Perfil'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'reset',
+                    child: Row(
+                      children: [
+                        Icon(Icons.refresh, size: 20, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Text('Reiniciar Jornada (Debug)'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'logout',
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout, size: 20, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Cerrar sesión', style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const PopupMenuItem<String>(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, size: 20, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Cerrar sesión', style: TextStyle(color: Colors.red)),
-                  ],
-                ),
-              ),
+              const SizedBox(width: 8),
             ],
           ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildGreeting(context),
-            const SizedBox(height: 24),
-            _buildStatusCard(context, attendanceProvider.state),
-            const SizedBox(height: 32),
-            _buildActionButtons(context, attendanceProvider),
-          ],
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildGreeting(context),
+                const SizedBox(height: 24),
+                _buildStatusCard(context, attendanceProvider.state),
+                const SizedBox(height: 32),
+                _buildActionButtons(context, attendanceProvider),
+              ],
+            ),
+          ),
         ),
-      ),
+        if (attendanceProvider.isActionLoading)
+          Container(
+            color: Colors.black.withOpacity(0.5),
+            child: Center(
+              child: Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "Capturando georeferencia...",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Por favor, no cierre la aplicación",
+                        style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
   Widget _buildGreeting(BuildContext context) {
+    final userProfile = context.select<AttendanceProvider, Map<String, dynamic>?>(
+      (p) => p.userProfile,
+    );
+    final String name = userProfile?['nombre_completo'] ?? 'Usuario';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Hola, Juan Pérez',
+          'Hola, $name',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         Text(
@@ -123,6 +173,11 @@ class HomeContent extends StatelessWidget {
   }
 
   Widget _buildStatusCard(BuildContext context, AttendanceState state) {
+    final userProfile = context.select<AttendanceProvider, Map<String, dynamic>?>(
+      (p) => p.userProfile,
+    );
+    final String sede = userProfile?['sede']?['nombre'] ?? 'Sede no asignada';
+
     String statusText = "";
     Color statusColor = Colors.grey;
 
@@ -173,11 +228,11 @@ class HomeContent extends StatelessWidget {
               ],
             ),
             const Divider(height: 32),
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Sede asignada:", style: TextStyle(color: Colors.grey)),
-                Text("Sede Central - Finhold", style: TextStyle(fontWeight: FontWeight.w500)),
+                const Text("Sede asignada:", style: TextStyle(color: Colors.grey)),
+                Text(sede, style: const TextStyle(fontWeight: FontWeight.w500)),
               ],
             ),
             const SizedBox(height: 8),
@@ -203,13 +258,13 @@ class HomeContent extends StatelessWidget {
           label: "Marcar entrada",
           icon: Icons.login,
           color: Colors.blue,
-          onPressed: status == AttendanceStatus.sinMarcar
+          onPressed: (status == AttendanceStatus.sinMarcar && provider.isGpsEnabled)
               ? () async {
                   bool success = await provider.markEntry();
                   if (!success && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text("GPS Desactivado. Por favor active la ubicación."),
+                        content: Text("Error al marcar. Verifique su GPS."),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -225,13 +280,13 @@ class HomeContent extends StatelessWidget {
                 label: "Iniciar descanso",
                 icon: Icons.coffee,
                 color: Colors.orange,
-                onPressed: (status == AttendanceStatus.entradaRegistrada || status == AttendanceStatus.observado)
+                onPressed: ((status == AttendanceStatus.entradaRegistrada || status == AttendanceStatus.observado) && provider.isGpsEnabled)
                     ? () async {
                         bool success = await provider.startBreak();
                         if (!success && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text("GPS Desactivado. Por favor active la ubicación."),
+                              content: Text("Error al marcar. Verifique su GPS."),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -246,13 +301,13 @@ class HomeContent extends StatelessWidget {
                 label: "Fin descanso",
                 icon: Icons.play_circle,
                 color: Colors.green,
-                onPressed: status == AttendanceStatus.enDescanso
+                onPressed: (status == AttendanceStatus.enDescanso && provider.isGpsEnabled)
                     ? () async {
                         bool success = await provider.endBreak();
                         if (!success && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text("GPS Desactivado. Por favor active la ubicación."),
+                              content: Text("Error al marcar. Verifique su GPS."),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -268,15 +323,15 @@ class HomeContent extends StatelessWidget {
           label: "Marcar salida",
           icon: Icons.logout,
           color: Colors.red,
-          onPressed: (status == AttendanceStatus.entradaRegistrada ||
+          onPressed: ((status == AttendanceStatus.entradaRegistrada ||
                   status == AttendanceStatus.descansoFinalizado ||
-                  status == AttendanceStatus.observado)
+                  status == AttendanceStatus.observado) && provider.isGpsEnabled)
               ? () async {
                   bool success = await provider.markExit();
                   if (!success && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text("GPS Desactivado. Por favor active la ubicación."),
+                        content: Text("Error al marcar. Verifique su GPS."),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -343,23 +398,32 @@ class _GpsStatusIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     final isGpsEnabled = context.watch<AttendanceProvider>().isGpsEnabled;
 
-    return Row(
-      children: [
-        Icon(
-          Icons.gps_fixed,
-          size: 14,
-          color: isGpsEnabled ? Colors.green : Colors.red,
+    return InkWell(
+      onTap: isGpsEnabled ? null : () => context.read<AttendanceProvider>().requestEnableGps(),
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isGpsEnabled ? Icons.check_circle_outline : Icons.error_outline,
+              size: 16,
+              color: isGpsEnabled ? Colors.green : Colors.orange,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              isGpsEnabled ? "GPS Activo" : "Activar ubicación aquí",
+              style: TextStyle(
+                color: isGpsEnabled ? Colors.grey[400] : Colors.orange,
+                fontSize: 13,
+                fontWeight: isGpsEnabled ? FontWeight.normal : FontWeight.bold,
+                decoration: isGpsEnabled ? TextDecoration.none : TextDecoration.underline,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 4),
-        Text(
-          isGpsEnabled ? "GPS Activo" : "GPS Desactivado",
-          style: TextStyle(
-            color: isGpsEnabled ? Colors.green : Colors.red,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

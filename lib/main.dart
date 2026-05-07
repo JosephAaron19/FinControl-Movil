@@ -3,27 +3,31 @@ import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
 import 'providers/attendance_provider.dart';
 import 'views/splash_screen.dart';
+import 'services/tracking_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await TrackingService.initializeService();
+  
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AttendanceProvider()),
       ],
-      child: const FinaTrackApp(),
+      child: const FinControlApp(),
     ),
   );
 }
 
-class FinaTrackApp extends StatelessWidget {
-  const FinaTrackApp({super.key});
+class FinControlApp extends StatelessWidget {
+  const FinControlApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'FinaTrack',
+      title: 'FinControl',
       debugShowCheckedModeBanner: false,
-      theme: FinaTrackTheme.darkTheme,
+      theme: FinControlTheme.darkTheme,
       home: const SplashScreen(),
     );
   }

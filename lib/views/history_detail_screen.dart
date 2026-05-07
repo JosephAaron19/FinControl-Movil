@@ -92,29 +92,29 @@ class HistoryDetailScreen extends StatelessWidget {
     return Column(
       children: [
         _TimelineItem(
-          time: DateFormat('HH:mm').format(record.entryTime!),
+          time: record.entryTime != null ? DateFormat('HH:mm').format(record.entryTime!) : "--:--",
           title: "Marcado de Entrada",
-          subtitle: "Registro exitoso con selfie",
+          subtitle: "Registro de inicio de jornada",
           icon: Icons.login,
           color: Colors.blue,
           isFirst: true,
         ),
         _TimelineItem(
-          time: "13:00",
+          time: record.breakStartTime != null ? DateFormat('HH:mm').format(record.breakStartTime!) : "--:--",
           title: "Inicio de Descanso",
           subtitle: "Pausa para refrigerio",
           icon: Icons.coffee,
           color: Colors.orange,
         ),
         _TimelineItem(
-          time: "14:00",
+          time: record.breakEndTime != null ? DateFormat('HH:mm').format(record.breakEndTime!) : "--:--",
           title: "Fin de Descanso",
           subtitle: "Retorno a labores",
           icon: Icons.play_circle,
           color: Colors.green,
         ),
         _TimelineItem(
-          time: DateFormat('HH:mm').format(record.exitTime!),
+          time: record.exitTime != null ? DateFormat('HH:mm').format(record.exitTime!) : "--:--",
           title: "Marcado de Salida",
           subtitle: "Jornada completada",
           icon: Icons.logout,

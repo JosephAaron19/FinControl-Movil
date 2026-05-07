@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/attendance_provider.dart';
 import 'success_screen.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class IncidentScreen extends StatefulWidget {
   const IncidentScreen({super.key});
@@ -13,6 +15,8 @@ class IncidentScreen extends StatefulWidget {
 class _IncidentScreenState extends State<IncidentScreen> {
   String? _selectedType;
   final TextEditingController _descriptionController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
+  XFile? _image;
 
   final List<String> _incidentTypes = [
     "No pude marcar entrada",
@@ -30,7 +34,16 @@ class _IncidentScreenState extends State<IncidentScreen> {
     super.dispose();
   }
 
-  void _submitIncident() {
+  Future<void> _pickImage() async {
+    final XFile? selected = await _picker.pickImage(source: ImageSource.gallery);
+    if (selected != null) {
+      setState(() {
+        _image = selected;
+      });
+    }
+  }
+
+  Future<void> _submitIncident() async {
     if (_selectedType == null || _descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Por favor complete todos los campos obligatorios")),
@@ -38,15 +51,50 @@ class _IncidentScreenState extends State<IncidentScreen> {
       return;
     }
 
-    // Aquí iría la lógica para enviar el reporte al backend
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const SuccessScreen(
-          message: "Tu incidencia ha sido reportada correctamente y será revisada por un supervisor.",
-        ),
-      ),
+    // Mostrar círculo de carga
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
+
+    final provider = Provider.of<AttendanceProvider>(context, listen: false);
+    final apiService = provider.apiService;
+
+    // Obtener ubicación actual para la incidencia
+    final position = await provider.getCurrentLocation();
+    final deviceInfo = provider.deviceInfo;
+
+    final success = await apiService.reportIncident(
+      type: _selectedType!,
+      description: _descriptionController.text,
+      lat: position?.latitude,
+      lng: position?.longitude,
+      deviceInfo: deviceInfo,
+      photoPath: _image?.path,
+    );
+
+    if (mounted) {
+      Navigator.pop(context); // Cerrar círculo de carga
+
+      if (success) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const SuccessScreen(
+              message: "Tu incidencia ha sido reportada correctamente y será revisada por un supervisor.",
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Error al enviar la incidencia. Intente nuevamente."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -102,10 +150,30 @@ class _IncidentScreenState extends State<IncidentScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
+            if (_image != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                height: 150,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  image: DecorationImage(
+                    image: FileImage(File(_image!.path)),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    icon: const Icon(Icons.cancel, color: Colors.red),
+                    onPressed: () => setState(() => _image = null),
+                  ),
+                ),
+              ),
             OutlinedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.camera_alt),
-              label: const Text("ADJUNTAR FOTO"),
+              onPressed: _pickImage,
+              icon: const Icon(Icons.photo_library),
+              label: Text(_image == null ? "ADJUNTAR FOTO DE GALERÍA" : "CAMBIAR FOTO"),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 56),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

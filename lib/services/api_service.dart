@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // 10.0.2.2 es la IP para acceder a localhost desde el emulador de Android
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  // URL de producción de la API
+  static const String baseUrl = 'https://apifincontrol.finatech.com.pe/api';
 
   String? _token;
   String? get token => _token;
@@ -35,7 +35,7 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login/'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'dni': dni, 'password': password}),
+        body: jsonEncode({'dni': dni, 'password': password, 'origen': 'movil'}),
       ).timeout(const Duration(seconds: 10));
       print('Login response: ${response.body}');
 

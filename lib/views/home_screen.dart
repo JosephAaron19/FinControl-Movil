@@ -257,11 +257,37 @@ class HomeContent extends StatelessWidget {
 
     return Column(
       children: [
+        if (status == AttendanceStatus.sinMarcar && !provider.puedeMarcarEntrada && provider.mensajeJornada.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.withOpacity(0.5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      provider.mensajeJornada,
+                      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        const SizedBox(height: 12),
         _ActionButton(
           label: "Marcar entrada",
           icon: Icons.login,
           color: Colors.blue,
-          onPressed: (status == AttendanceStatus.sinMarcar && provider.isGpsEnabled)
+          onPressed: (status == AttendanceStatus.sinMarcar && provider.isGpsEnabled && provider.puedeMarcarEntrada)
+
               ? () async {
                   bool success = await provider.markEntry();
                   if (!success && context.mounted) {

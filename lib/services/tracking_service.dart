@@ -17,7 +17,9 @@ class TrackingService {
 
   static Future<void> initializeService() async {
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
-      print("TrackingService no soportado en esta plataforma (Windows/Web). Ignorando inicialización.");
+      print(
+        "TrackingService no soportado en esta plataforma (Windows/Web). Ignorando inicialización.",
+      );
       return;
     }
 
@@ -35,7 +37,8 @@ class TrackingService {
 
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
 
     await service.configure(
@@ -78,17 +81,18 @@ void onStartBackground(ServiceInstance service) async {
 
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
-  
+
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
   const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid);
+    android: initializationSettingsAndroid,
+  );
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
   final ApiService apiService = ApiService();
   final Battery battery = Battery();
   final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-  
+
   await apiService.loadToken();
 
   Timer? timer;
@@ -116,15 +120,31 @@ void onStartBackground(ServiceInstance service) async {
 
       if (asistenciaId == null) {
         flutterLocalNotificationsPlugin.show(
-          889, 'Debug', 'Error: asistenciaId es null',
-          const NotificationDetails(android: AndroidNotificationDetails('tracking_channel', 'Debug', importance: Importance.max)),
+          889,
+          'Debug',
+          'Error: asistenciaId es null',
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'tracking_channel',
+              'Debug',
+              importance: Importance.max,
+            ),
+          ),
         );
         return;
       }
 
       flutterLocalNotificationsPlugin.show(
-        890, 'Debug', 'Obteniendo GPS...',
-        const NotificationDetails(android: AndroidNotificationDetails('tracking_channel', 'Debug', importance: Importance.max)),
+        890,
+        'Debug',
+        'Obteniendo GPS...',
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'tracking_channel',
+            'Debug',
+            importance: Importance.max,
+          ),
+        ),
       );
 
       final Position pos = await Geolocator.getCurrentPosition(
@@ -140,8 +160,16 @@ void onStartBackground(ServiceInstance service) async {
       } catch (_) {}
 
       flutterLocalNotificationsPlugin.show(
-        891, 'Debug', 'Enviando a API...',
-        const NotificationDetails(android: AndroidNotificationDetails('tracking_channel', 'Debug', importance: Importance.max)),
+        891,
+        'Debug',
+        'Enviando a API...',
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'tracking_channel',
+            'Debug',
+            importance: Importance.max,
+          ),
+        ),
       );
 
       final success = await apiService.sendTrackingPoint(
@@ -156,31 +184,57 @@ void onStartBackground(ServiceInstance service) async {
 
       if (!success) {
         flutterLocalNotificationsPlugin.show(
-          892, 'Debug', 'Fallo al enviar a API (Server Error o Red)',
-          const NotificationDetails(android: AndroidNotificationDetails('tracking_channel', 'Debug', importance: Importance.max)),
+          892,
+          'Debug',
+          'Fallo al enviar a API (Server Error o Red)',
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'tracking_channel',
+              'Debug',
+              importance: Importance.max,
+            ),
+          ),
         );
         List<String> pending = prefs.getStringList('pending_points') ?? [];
-        pending.add(jsonEncode({
-          'asistencia': asistenciaId,
-          'historial_jornada_id': historialId ?? asistenciaId,
-          'latitud': pos.latitude,
-          'longitud': pos.longitude,
-          'precision_metros': pos.accuracy,
-          'bateria_porcentaje': batteryLevel,
-          'dispositivo_info': deviceModel,
-          'fecha': DateTime.now().toIso8601String(),
-        }));
+        pending.add(
+          jsonEncode({
+            'asistencia': asistenciaId,
+            'historial_jornada_id': historialId ?? asistenciaId,
+            'latitud': pos.latitude,
+            'longitud': pos.longitude,
+            'precision_metros': pos.accuracy,
+            'bateria_porcentaje': batteryLevel,
+            'dispositivo_info': deviceModel,
+            'fecha': DateTime.now().toIso8601String(),
+          }),
+        );
         await prefs.setStringList('pending_points', pending);
       } else {
         flutterLocalNotificationsPlugin.show(
-          893, 'Debug', '¡Punto enviado exitosamente a Django!',
-          const NotificationDetails(android: AndroidNotificationDetails('tracking_channel', 'Debug', importance: Importance.max)),
+          893,
+          'Debug',
+          '¡Punto enviado exitosamente a Django!',
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'tracking_channel',
+              'Debug',
+              importance: Importance.max,
+            ),
+          ),
         );
       }
     } catch (e) {
       flutterLocalNotificationsPlugin.show(
-        894, 'Debug', 'Excepción: $e',
-        const NotificationDetails(android: AndroidNotificationDetails('tracking_channel', 'Debug', importance: Importance.max)),
+        894,
+        'Debug',
+        'Excepción: $e',
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'tracking_channel',
+            'Debug',
+            importance: Importance.max,
+          ),
+        ),
       );
       print("Tracking Error: $e");
     }

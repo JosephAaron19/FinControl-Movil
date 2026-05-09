@@ -249,4 +249,24 @@ class ApiService {
       return null;
     }
   }
+
+  Future<Map<String, dynamic>?> checkJornadaStatus() async {
+    if (_token == null) return null;
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/jornada/estado-marcacion/'),
+        headers: {'Authorization': 'Bearer $_token'},
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Error al verificar estado de jornada: $e');
+      return null;
+    }
+  }
 }
+

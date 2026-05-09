@@ -19,6 +19,11 @@ class AttendanceProvider with ChangeNotifier {
   List<AttendanceRecord> _history = [];
   bool _isLoading = false;
   bool _isActionLoading = false;
+  bool _puedeMarcarEntrada = false;
+  String _mensajeJornada = "";
+  
+  bool get puedeMarcarEntrada => _puedeMarcarEntrada;
+  String get mensajeJornada => _mensajeJornada;
   
   Timer? _syncTimer;
   String? _lastSyncTimestamp;
@@ -192,6 +197,12 @@ class AttendanceProvider with ChangeNotifier {
       latitude: todayRecord.latitude,
       longitude: todayRecord.longitude,
     );
+    
+    final jornadaStatus = await _apiService.checkJornadaStatus();
+    if (jornadaStatus != null) {
+      _puedeMarcarEntrada = jornadaStatus['puede_marcar_entrada'] ?? false;
+      _mensajeJornada = jornadaStatus['mensaje'] ?? "";
+    }
     
     notifyListeners();
   }

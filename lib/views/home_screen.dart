@@ -176,7 +176,10 @@ class HomeContent extends StatelessWidget {
     final userProfile = context.select<AttendanceProvider, Map<String, dynamic>?>(
       (p) => p.userProfile,
     );
-    final String sede = userProfile?['sede']?['nombre'] ?? 'Sede no asignada';
+    final sedeData = userProfile?['sede'];
+    final String sede = (sedeData is Map) 
+        ? (sedeData['nombre'] ?? 'Sede no asignada') 
+        : (sedeData != null ? 'Sede ID: $sedeData' : 'Sede no asignada');
 
     String statusText = "";
     Color statusColor = Colors.grey;

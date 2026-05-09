@@ -196,13 +196,29 @@ class AttendanceProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  double get targetLatitude => _userProfile?['sede']?['latitud'] != null 
-      ? double.parse(_userProfile!['sede']['latitud'].toString()) 
-      : -12.046374;
-  double get targetLongitude => _userProfile?['sede']?['longitud'] != null 
-      ? double.parse(_userProfile!['sede']['longitud'].toString()) 
-      : -77.042793;
-  double get allowedRadius => _userProfile?['sede']?['radio_metros']?.toDouble() ?? 100.0;
+  double get targetLatitude {
+    final sede = _userProfile?['sede'];
+    if (sede is Map && sede['latitud'] != null) {
+      return double.parse(sede['latitud'].toString());
+    }
+    return -12.046374;
+  }
+
+  double get targetLongitude {
+    final sede = _userProfile?['sede'];
+    if (sede is Map && sede['longitud'] != null) {
+      return double.parse(sede['longitud'].toString());
+    }
+    return -77.042793;
+  }
+
+  double get allowedRadius {
+    final sede = _userProfile?['sede'];
+    if (sede is Map && sede['radio_metros'] != null) {
+      return sede['radio_metros'].toDouble();
+    }
+    return 100.0;
+  }
 
   Future<bool> markEntry({String? selfiePath}) async {
     _isActionLoading = true;

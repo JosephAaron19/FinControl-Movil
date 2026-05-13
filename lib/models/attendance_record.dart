@@ -51,9 +51,18 @@ class AttendanceRecord {
     if (exit != null) return AttendanceStatus.salidaRegistrada;
     if (breakEnd != null) return AttendanceStatus.descansoFinalizado;
     if (breakStart != null) return AttendanceStatus.enDescanso;
+    
+    final statusLower = backendStatus.toLowerCase();
+    
+    if (statusLower == 'justificado') return AttendanceStatus.justificado;
+    if (statusLower == 'no_marco_entrada') return AttendanceStatus.noMarcoEntrada;
+    if (statusLower == 'tardanza') return AttendanceStatus.tardanza;
+    if (statusLower == 'observado') return AttendanceStatus.observado;
+    
     if (entry != null) {
-      return backendStatus == 'Observado' ? AttendanceStatus.observado : AttendanceStatus.entradaRegistrada;
+      return AttendanceStatus.entradaRegistrada;
     }
+    
     return AttendanceStatus.sinMarcar;
   }
 }

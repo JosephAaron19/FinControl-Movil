@@ -8,8 +8,11 @@ import '../models/attendance_record.dart';
 import '../services/location_service.dart';
 import '../services/api_service.dart';
 import '../services/tracking_service.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/status.dart' as status_codes;
 
 class AttendanceProvider with ChangeNotifier {
+  WebSocketChannel? _socketChannel;
   AttendanceState _state = AttendanceState();
   final LocationService _locationService = LocationService();
   final ApiService _apiService = ApiService();
@@ -20,9 +23,15 @@ class AttendanceProvider with ChangeNotifier {
   bool _isLoading = false;
   bool _isActionLoading = false;
   bool _puedeMarcarEntrada = false;
+  bool _puedeIniciarDescanso = false;
+  bool _puedeFinalizarDescanso = false;
+  bool _puedeMarcarSalida = false;
   String _mensajeJornada = "";
   
   bool get puedeMarcarEntrada => _puedeMarcarEntrada;
+  bool get puedeIniciarDescanso => _puedeIniciarDescanso;
+  bool get puedeFinalizarDescanso => _puedeFinalizarDescanso;
+  bool get puedeMarcarSalida => _puedeMarcarSalida;
   String get mensajeJornada => _mensajeJornada;
   
   Timer? _syncTimer;
@@ -38,11 +47,53 @@ class AttendanceProvider with ChangeNotifier {
 
   AttendanceProvider() {
     _initGpsListener();
+    _tryReconnectSocket();
+  }
+
+  void _tryReconnectSocket() async {
+    final hasToken = await _apiService.loadToken();
+    if (hasToken) {
+      _initWebSocket();
+    }
+  }
+
+  void _initWebSocket() {
+    if (_socketChannel != null) {
+      _socketChannel!.sink.close();
+    }
+
+    final wsUrl = ApiService.baseUrl.replaceFirst('https', 'wss').replaceFirst('http', 'ws');
+    final uri = Uri.parse('$wsUrl'.replaceFirst('/api', '/ws/notifications/') + '?token=${_apiService.token}');
+    
+    _socketChannel = WebSocketChannel.connect(uri);
+
+    _socketChannel!.stream.listen(
+      (message) {
+        final data = jsonDecode(message);
+        if (data['type'] == 'config_update' || data['type'] == 'attendance_update') {
+          // Recargar datos si hay cambios en la configuración o asistencia
+          loadInitialData();
+        }
+      },
+      onError: (error) {
+        print('Error en WebSocket: $error');
+        // Reintentar después de un tiempo
+        Future.delayed(const Duration(seconds: 5), _initWebSocket);
+      },
+      onDone: () {
+        print('Conexión WebSocket cerrada');
+        // Reintentar si se cerró inesperadamente
+        if (_apiService.token != null) {
+          Future.delayed(const Duration(seconds: 5), _initWebSocket);
+        }
+      },
+    );
   }
 
   @override
   void dispose() {
     _syncTimer?.cancel();
+    _socketChannel?.sink.close();
     super.dispose();
   }
 
@@ -145,6 +196,7 @@ class AttendanceProvider with ChangeNotifier {
     final success = await _apiService.login(dni, password, rememberMe: rememberMe);
     if (success) {
       await loadInitialData();
+      _initWebSocket();
       _startSyncTimer();
     }
     
@@ -155,6 +207,8 @@ class AttendanceProvider with ChangeNotifier {
 
   void logout() async {
     _syncTimer?.cancel();
+    _socketChannel?.sink.close();
+    _socketChannel = null;
     _lastSyncTimestamp = null;
     await _apiService.logout();
     TrackingService.stop();
@@ -201,7 +255,21 @@ class AttendanceProvider with ChangeNotifier {
     final jornadaStatus = await _apiService.checkJornadaStatus();
     if (jornadaStatus != null) {
       _puedeMarcarEntrada = jornadaStatus['puede_marcar_entrada'] ?? false;
+      _puedeIniciarDescanso = jornadaStatus['puede_iniciar_descanso'] ?? false;
+      _puedeFinalizarDescanso = jornadaStatus['puede_finalizar_descanso'] ?? false;
+      _puedeMarcarSalida = jornadaStatus['puede_marcar_salida'] ?? false;
       _mensajeJornada = jornadaStatus['mensaje'] ?? "";
+      
+      // Actualizar el estado local basado en lo que dice el servidor
+      final statusLower = (jornadaStatus['asistencia_estado'] ?? '').toString().toLowerCase();
+      
+      if (statusLower == 'justificado') {
+        _state = _state.copyWith(status: AttendanceStatus.justificado);
+      } else if (statusLower == 'no_marco_entrada') {
+        _state = _state.copyWith(status: AttendanceStatus.noMarcoEntrada);
+      } else if (statusLower == 'tardanza' && (_state.status == AttendanceStatus.sinMarcar || _state.status == AttendanceStatus.noMarcoEntrada)) {
+        _state = _state.copyWith(status: AttendanceStatus.tardanza);
+      }
     }
     
     notifyListeners();
@@ -232,6 +300,7 @@ class AttendanceProvider with ChangeNotifier {
   }
 
   Future<bool> markEntry({String? selfiePath}) async {
+    if (_isActionLoading) return false;
     _isActionLoading = true;
     notifyListeners();
 
@@ -252,8 +321,22 @@ class AttendanceProvider with ChangeNotifier {
       );
 
       if (result != null) {
+        // Usar el estado devuelto por el servidor (Puntual, Tardanza, Observado)
+        AttendanceStatus finalStatus = isObserved ? AttendanceStatus.observado : AttendanceStatus.entradaRegistrada;
+        final serverStatus = result['status']?.toString().toLowerCase();
+        
+        if (serverStatus == 'tardanza') {
+          finalStatus = AttendanceStatus.tardanza;
+        } else if (serverStatus == 'observado') {
+          finalStatus = AttendanceStatus.observado;
+        } else if (serverStatus == 'justificado') {
+          finalStatus = AttendanceStatus.justificado;
+        } else if (serverStatus == 'puntual') {
+          finalStatus = AttendanceStatus.entradaRegistrada;
+        }
+
         _state = _state.copyWith(
-          status: isObserved ? AttendanceStatus.observado : AttendanceStatus.entradaRegistrada,
+          status: finalStatus,
           entryTime: DateTime.now(),
           latitude: lat,
           longitude: lng,
@@ -277,7 +360,11 @@ class AttendanceProvider with ChangeNotifier {
   }
 
   Future<bool> startBreak() async {
-    if (_state.status != AttendanceStatus.entradaRegistrada && _state.status != AttendanceStatus.observado) return false;
+    if (_isActionLoading) return false;
+    // Permitir iniciar descanso si ya entró (Puntual, Observado o Tardanza)
+    if (_state.status != AttendanceStatus.entradaRegistrada && 
+        _state.status != AttendanceStatus.observado && 
+        _state.status != AttendanceStatus.tardanza) return false;
 
     _isActionLoading = true;
     notifyListeners();
@@ -309,6 +396,7 @@ class AttendanceProvider with ChangeNotifier {
   }
 
   Future<bool> endBreak() async {
+    if (_isActionLoading) return false;
     if (_state.status != AttendanceStatus.enDescanso) return false;
 
     _isActionLoading = true;
@@ -341,6 +429,7 @@ class AttendanceProvider with ChangeNotifier {
   }
 
   Future<bool> markExit({String? selfiePath}) async {
+    if (_isActionLoading) return false;
     if (_state.status == AttendanceStatus.sinMarcar || _state.status == AttendanceStatus.salidaRegistrada) return false;
 
     _isActionLoading = true;

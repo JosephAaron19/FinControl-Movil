@@ -209,6 +209,18 @@ class HomeContent extends StatelessWidget {
         statusText = "Entrada Observada (Fuera de rango)";
         statusColor = Colors.amber;
         break;
+      case AttendanceStatus.tardanza:
+        statusText = "Tardanza Detectada";
+        statusColor = Colors.deepOrange;
+        break;
+      case AttendanceStatus.noMarcoEntrada:
+        statusText = "No marcó entrada";
+        statusColor = Colors.red;
+        break;
+      case AttendanceStatus.justificado:
+        statusText = "Asistencia Justificada";
+        statusColor = Colors.teal;
+        break;
       default:
         statusText = "Estado desconocido";
     }
@@ -286,8 +298,7 @@ class HomeContent extends StatelessWidget {
           label: "Marcar entrada",
           icon: Icons.login,
           color: Colors.blue,
-          onPressed: (status == AttendanceStatus.sinMarcar && provider.isGpsEnabled && provider.puedeMarcarEntrada)
-
+          onPressed: (provider.puedeMarcarEntrada && provider.isGpsEnabled)
               ? () async {
                   bool success = await provider.markEntry();
                   if (!success && context.mounted) {
@@ -309,7 +320,7 @@ class HomeContent extends StatelessWidget {
                 label: "Iniciar descanso",
                 icon: Icons.coffee,
                 color: Colors.orange,
-                onPressed: ((status == AttendanceStatus.entradaRegistrada || status == AttendanceStatus.observado) && provider.isGpsEnabled)
+                onPressed: (provider.puedeIniciarDescanso && provider.isGpsEnabled)
                     ? () async {
                         bool success = await provider.startBreak();
                         if (!success && context.mounted) {
@@ -330,7 +341,7 @@ class HomeContent extends StatelessWidget {
                 label: "Fin descanso",
                 icon: Icons.play_circle,
                 color: Colors.green,
-                onPressed: (status == AttendanceStatus.enDescanso && provider.isGpsEnabled)
+                onPressed: (provider.puedeFinalizarDescanso && provider.isGpsEnabled)
                     ? () async {
                         bool success = await provider.endBreak();
                         if (!success && context.mounted) {
@@ -352,9 +363,7 @@ class HomeContent extends StatelessWidget {
           label: "Marcar salida",
           icon: Icons.logout,
           color: Colors.red,
-          onPressed: ((status == AttendanceStatus.entradaRegistrada ||
-                  status == AttendanceStatus.descansoFinalizado ||
-                  status == AttendanceStatus.observado) && provider.isGpsEnabled)
+          onPressed: (provider.puedeMarcarSalida && provider.isGpsEnabled)
               ? () async {
                   bool success = await provider.markExit();
                   if (!success && context.mounted) {

@@ -6,6 +6,9 @@ enum AttendanceStatus {
   salidaRegistrada,
   observado,
   pendienteRevision,
+  tardanza,
+  noMarcoEntrada,
+  justificado,
 }
 
 class AttendanceState {

@@ -65,7 +65,7 @@ class _IncidentScreenState extends State<IncidentScreen> {
     final position = await provider.getCurrentLocation();
     final deviceInfo = provider.deviceInfo;
 
-    final success = await apiService.reportIncident(
+    final result = await apiService.reportIncident(
       type: _selectedType!,
       description: _descriptionController.text,
       lat: position?.latitude,
@@ -77,7 +77,7 @@ class _IncidentScreenState extends State<IncidentScreen> {
     if (mounted) {
       Navigator.pop(context); // Cerrar círculo de carga
 
-      if (success) {
+      if (result['success'] == true) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -88,8 +88,8 @@ class _IncidentScreenState extends State<IncidentScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Error al enviar la incidencia. Intente nuevamente."),
+          SnackBar(
+            content: Text(result['message'] ?? "Error al enviar la incidencia. Intente nuevamente."),
             backgroundColor: Colors.red,
           ),
         );

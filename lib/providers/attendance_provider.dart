@@ -45,6 +45,12 @@ class AttendanceProvider with ChangeNotifier {
   List<AttendanceRecord> get history => _history;
   bool get isLoading => _isLoading;
   String get deviceInfo => "Flutter Device (Android/iOS)";
+  
+  bool get isJornadaActiva {
+    return _state.status != AttendanceStatus.sinMarcar && 
+           _state.status != AttendanceStatus.salidaRegistrada &&
+           _state.status != AttendanceStatus.noMarcoEntrada;
+  }
 
   AttendanceProvider() {
     _initGpsListener();
@@ -277,7 +283,7 @@ class AttendanceProvider with ChangeNotifier {
   }
 
   double get targetLatitude {
-    final sede = _userProfile?['sede'];
+    final sede = _userProfile?['sede_info'] ?? _userProfile?['sede'];
     if (sede is Map && sede['latitud'] != null) {
       return double.parse(sede['latitud'].toString());
     }
@@ -285,7 +291,7 @@ class AttendanceProvider with ChangeNotifier {
   }
 
   double get targetLongitude {
-    final sede = _userProfile?['sede'];
+    final sede = _userProfile?['sede_info'] ?? _userProfile?['sede'];
     if (sede is Map && sede['longitud'] != null) {
       return double.parse(sede['longitud'].toString());
     }
@@ -293,7 +299,7 @@ class AttendanceProvider with ChangeNotifier {
   }
 
   double get allowedRadius {
-    final sede = _userProfile?['sede'];
+    final sede = _userProfile?['sede_info'] ?? _userProfile?['sede'];
     if (sede is Map && sede['radio_metros'] != null) {
       return sede['radio_metros'].toDouble();
     }

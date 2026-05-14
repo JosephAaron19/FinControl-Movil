@@ -30,6 +30,33 @@ class ApiService {
     _token = null;
   }
 
+  Future<bool> refreshToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final refreshToken = prefs.getString('refresh_token');
+    if (refreshToken == null) return false;
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/refresh/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh': refreshToken}),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _token = data['access'];
+        // El refresh token podría cambiar también según la configuración de SimpleJWT
+        final newRefresh = data['refresh'] ?? refreshToken;
+        await _saveTokens(_token!, newRefresh);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error al refrescar token: $e');
+      return false;
+    }
+  }
+
   Future<bool> login(String dni, String password, {bool rememberMe = false}) async {
     try {
       final response = await http.post(
@@ -42,8 +69,8 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         _token = data['access'];
-        final refreshToken = data['refresh'] ?? '';
-        await _saveTokens(_token!, refreshToken);
+        final refreshTokenStr = data['refresh'] ?? '';
+        await _saveTokens(_token!, refreshTokenStr);
         
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('remember_me', rememberMe);
@@ -144,7 +171,7 @@ class ApiService {
     }
   }
 
-  Future<bool> reportIncident({
+  Future<Map<String, dynamic>> reportIncident({
     required String type,
     required String description,
     double? lat,
@@ -152,7 +179,7 @@ class ApiService {
     String? deviceInfo,
     String? photoPath,
   }) async {
-    if (_token == null) return false;
+    if (_token == null) return {'success': false, 'message': 'No hay sesión activa'};
 
     try {
       var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/incidents/create/'));
@@ -175,10 +202,20 @@ class ApiService {
       final response = await http.Response.fromStream(streamedResponse);
       
       print('Incident response: ${response.body}');
-      return response.statusCode == 201 || response.statusCode == 200;
+      
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return {'success': true};
+      } else {
+        String errorMsg = "Error al enviar la incidencia";
+        try {
+          final errorData = jsonDecode(response.body);
+          errorMsg = errorData['error'] ?? errorData['detail'] ?? errorMsg;
+        } catch (_) {}
+        return {'success': false, 'message': errorMsg};
+      }
     } catch (e) {
       print('Error al reportar incidencia: $e');
-      return false;
+      return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
   Future<Map<String, dynamic>?> getTrackingConfig() async {
@@ -204,7 +241,11 @@ class ApiService {
     int? bateria,
     String? deviceInfo,
   }) async {
-    if (_token == null) return false;
+    if (_token == null) {
+      await loadToken(); // Intentar cargar si es null (ej. reinicio de servicio)
+      if (_token == null) return false;
+    }
+
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/ubicacion-puntos/'),
@@ -223,6 +264,24 @@ class ApiService {
           'origen': 'servicio_background',
         }),
       ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 401) {
+        // Token expirado, intentar refrescar
+        final refreshed = await refreshToken();
+        if (refreshed) {
+          // Reintentar una vez más
+          return await sendTrackingPoint(
+            asistenciaId: asistenciaId,
+            historialJornadaId: historialJornadaId,
+            lat: lat,
+            lng: lng,
+            precision: precision,
+            bateria: bateria,
+            deviceInfo: deviceInfo,
+          );
+        }
+      }
+      
       return response.statusCode == 201;
     } catch (e) {
       return false;

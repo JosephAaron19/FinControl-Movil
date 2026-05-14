@@ -65,8 +65,6 @@ class HomeContent extends StatelessWidget {
                       MaterialPageRoute(builder: (context) => const LoginScreen()),
                       (route) => false,
                     );
-                  } else if (value == 'reset') {
-                    Provider.of<AttendanceProvider>(context, listen: false).resetToday();
                   }
                 },
                 itemBuilder: (BuildContext context) => [
@@ -77,16 +75,6 @@ class HomeContent extends StatelessWidget {
                         Icon(Icons.person, size: 20),
                         SizedBox(width: 8),
                         Text('Mi Perfil'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'reset',
-                    child: Row(
-                      children: [
-                        Icon(Icons.refresh, size: 20, color: Colors.orange),
-                        SizedBox(width: 8),
-                        Text('Reiniciar Jornada (Debug)'),
                       ],
                     ),
                   ),
@@ -176,10 +164,10 @@ class HomeContent extends StatelessWidget {
     final userProfile = context.select<AttendanceProvider, Map<String, dynamic>?>(
       (p) => p.userProfile,
     );
-    final sedeData = userProfile?['sede'];
-    final String sede = (sedeData is Map) 
-        ? (sedeData['nombre'] ?? 'Sede no asignada') 
-        : (sedeData != null ? 'Sede ID: $sedeData' : 'Sede no asignada');
+    final sedeInfo = userProfile?['sede_info'];
+    final String sede = (sedeInfo is Map) 
+        ? (sedeInfo['nombre'] ?? 'Sede no asignada') 
+        : 'Sede no asignada';
 
     String statusText = "";
     Color statusColor = Colors.grey;
@@ -384,10 +372,19 @@ class HomeContent extends StatelessWidget {
           color: Colors.amber,
           isSecondary: true,
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const IncidentScreen()),
-            );
+            if (provider.isJornadaActiva) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const IncidentScreen()),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("No puede enviar su reporte porque no está en una jornada activa."),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
           },
         ),
       ],

@@ -69,8 +69,16 @@ class AttendanceProvider with ChangeNotifier {
       _socketChannel!.sink.close();
     }
 
-    final wsUrl = ApiService.baseUrl.replaceFirst('https', 'wss').replaceFirst('http', 'ws');
-    final uri = Uri.parse('$wsUrl'.replaceFirst('/api', '/ws/notifications/') + '?token=${_apiService.token}');
+    // Construcción robusta de la URL de WebSocket usando el objeto Uri
+    final baseUri = Uri.parse(ApiService.baseUrl);
+    final wsScheme = baseUri.scheme == 'https' ? 'wss' : 'ws';
+    final uri = Uri(
+      scheme: wsScheme,
+      host: baseUri.host,
+      port: baseUri.port != 0 ? baseUri.port : null,
+      path: '/ws/notifications/',
+      queryParameters: {'token': _apiService.token},
+    );
     
     _socketChannel = WebSocketChannel.connect(uri);
 

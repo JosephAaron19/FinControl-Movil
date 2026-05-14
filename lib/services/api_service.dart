@@ -36,11 +36,13 @@ class ApiService {
     if (refreshToken == null) return false;
 
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/refresh/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh': refreshToken}),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/refresh/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh': refreshToken}),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -57,13 +59,23 @@ class ApiService {
     }
   }
 
-  Future<bool> login(String dni, String password, {bool rememberMe = false}) async {
+  Future<bool> login(
+    String dni,
+    String password, {
+    bool rememberMe = false,
+  }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/login/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'dni': dni, 'password': password, 'origen': 'movil'}),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/login/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'dni': dni,
+              'password': password,
+              'origen': 'movil',
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
       print('Login response: ${response.body}');
 
       if (response.statusCode == 200) {
@@ -71,7 +83,7 @@ class ApiService {
         _token = data['access'];
         final refreshTokenStr = data['refresh'] ?? '';
         await _saveTokens(_token!, refreshTokenStr);
-        
+
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('remember_me', rememberMe);
         return true;
@@ -92,19 +104,21 @@ class ApiService {
     if (_token == null) return null;
 
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/attendance/event/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-        body: jsonEncode({
-          'type': type.toUpperCase(),
-          'latitud': lat,
-          'longitud': lng,
-          'device_info': deviceInfo,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/attendance/event/'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $_token',
+            },
+            body: jsonEncode({
+              'type': type.toUpperCase(),
+              'latitud': lat,
+              'longitud': lng,
+              'device_info': deviceInfo,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -120,10 +134,12 @@ class ApiService {
     if (_token == null) return null;
 
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/auth/profile/'),
-        headers: {'Authorization': 'Bearer $_token'},
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/auth/profile/'),
+            headers: {'Authorization': 'Bearer $_token'},
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -156,10 +172,12 @@ class ApiService {
     if (_token == null) return [];
 
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/attendance/history/'),
-        headers: {'Authorization': 'Bearer $_token'},
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/attendance/history/'),
+            headers: {'Authorization': 'Bearer $_token'},
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -179,14 +197,16 @@ class ApiService {
     String? deviceInfo,
     String? photoPath,
   }) async {
-    if (_token == null) return {'success': false, 'message': 'No hay sesión activa'};
+    if (_token == null)
+      return {'success': false, 'message': 'No hay sesión activa'};
 
     try {
-      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/incidents/create/'));
-      
-      request.headers.addAll({
-        'Authorization': 'Bearer $_token',
-      });
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/incidents/create/'),
+      );
+
+      request.headers.addAll({'Authorization': 'Bearer $_token'});
 
       request.fields['tipo_incidencia'] = type;
       request.fields['descripcion'] = description;
@@ -195,14 +215,18 @@ class ApiService {
       if (deviceInfo != null) request.fields['dispositivo_info'] = deviceInfo;
 
       if (photoPath != null) {
-        request.files.add(await http.MultipartFile.fromPath('foto_evidencia_url', photoPath));
+        request.files.add(
+          await http.MultipartFile.fromPath('foto_evidencia_url', photoPath),
+        );
       }
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+      );
       final response = await http.Response.fromStream(streamedResponse);
-      
+
       print('Incident response: ${response.body}');
-      
+
       if (response.statusCode == 201 || response.statusCode == 200) {
         return {'success': true};
       } else {
@@ -218,13 +242,16 @@ class ApiService {
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
+
   Future<Map<String, dynamic>?> getTrackingConfig() async {
     if (_token == null) return null;
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/configuracion-tracking/'),
-        headers: {'Authorization': 'Bearer $_token'},
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/configuracion-tracking/'),
+            headers: {'Authorization': 'Bearer $_token'},
+          )
+          .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) return jsonDecode(response.body);
       return null;
     } catch (e) {
@@ -247,23 +274,25 @@ class ApiService {
     }
 
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/ubicacion-puntos/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-        body: jsonEncode({
-          'asistencia': asistenciaId,
-          'historial_jornada_id': historialJornadaId,
-          'latitud': lat,
-          'longitud': lng,
-          'precision_metros': precision,
-          'bateria_porcentaje': bateria,
-          'dispositivo_info': deviceInfo,
-          'origen': 'servicio_background',
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/ubicacion-puntos/'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $_token',
+            },
+            body: jsonEncode({
+              'asistencia': asistenciaId,
+              'historial_jornada_id': historialJornadaId,
+              'latitud': lat,
+              'longitud': lng,
+              'precision_metros': precision,
+              'bateria_porcentaje': bateria,
+              'dispositivo_info': deviceInfo,
+              'origen': 'servicio_background',
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 401) {
         // Token expirado, intentar refrescar
@@ -281,24 +310,25 @@ class ApiService {
           );
         }
       }
-      
+
       return response.statusCode == 201;
     } catch (e) {
       return false;
     }
   }
 
-  Future<Map<String, dynamic>?> checkSyncStatus(String? lastSyncTimestamp) async {
+  Future<Map<String, dynamic>?> checkSyncStatus(
+    String? lastSyncTimestamp,
+  ) async {
     if (_token == null) return null;
     try {
       Uri uri = Uri.parse('$baseUrl/sync/');
       if (lastSyncTimestamp != null) {
         uri = uri.replace(queryParameters: {'last_sync': lastSyncTimestamp});
       }
-      final response = await http.get(
-        uri,
-        headers: {'Authorization': 'Bearer $_token'},
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(uri, headers: {'Authorization': 'Bearer $_token'})
+          .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
@@ -313,10 +343,12 @@ class ApiService {
     if (_token == null) return null;
 
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/jornada/estado-marcacion/'),
-        headers: {'Authorization': 'Bearer $_token'},
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/jornada/estado-marcacion/'),
+            headers: {'Authorization': 'Bearer $_token'},
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -328,4 +360,3 @@ class ApiService {
     }
   }
 }
-

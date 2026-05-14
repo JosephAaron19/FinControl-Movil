@@ -84,6 +84,7 @@ class AttendanceProvider with ChangeNotifier {
 
     _socketChannel!.stream.listen(
       (message) {
+        print('WebSocket message received: $message');
         final data = jsonDecode(message);
         if (data['type'] == 'config_update' || data['type'] == 'attendance_update') {
           // Recargar datos si hay cambios en la configuración o asistencia

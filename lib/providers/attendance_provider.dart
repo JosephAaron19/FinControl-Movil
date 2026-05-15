@@ -27,12 +27,18 @@ class AttendanceProvider with ChangeNotifier {
   bool _puedeIniciarDescanso = false;
   bool _puedeFinalizarDescanso = false;
   bool _puedeMarcarSalida = false;
+  bool _puedeIniciarActividad = false;
+  bool _puedeFinalizarActividad = false;
+  Map<String, dynamic>? _actividadEnProceso;
   String _mensajeJornada = "";
   
   bool get puedeMarcarEntrada => _puedeMarcarEntrada;
   bool get puedeIniciarDescanso => _puedeIniciarDescanso;
   bool get puedeFinalizarDescanso => _puedeFinalizarDescanso;
   bool get puedeMarcarSalida => _puedeMarcarSalida;
+  bool get puedeIniciarActividad => _puedeIniciarActividad;
+  bool get puedeFinalizarActividad => _puedeFinalizarActividad;
+  Map<String, dynamic>? get actividadEnProceso => _actividadEnProceso;
   String get mensajeJornada => _mensajeJornada;
   
   Timer? _syncTimer;
@@ -45,6 +51,9 @@ class AttendanceProvider with ChangeNotifier {
   List<AttendanceRecord> get history => _history;
   bool get isLoading => _isLoading;
   String get deviceInfo => "Flutter Device (Android/iOS)";
+
+  String get userRole => _userProfile?['rol']?.toString().toLowerCase() ?? 'operador';
+  bool get isAsesor => userRole == 'asesor';
   
   bool get isJornadaActiva {
     return _state.status != AttendanceStatus.sinMarcar && 
@@ -274,6 +283,9 @@ class AttendanceProvider with ChangeNotifier {
       _puedeIniciarDescanso = jornadaStatus['puede_iniciar_descanso'] ?? false;
       _puedeFinalizarDescanso = jornadaStatus['puede_finalizar_descanso'] ?? false;
       _puedeMarcarSalida = jornadaStatus['puede_marcar_salida'] ?? false;
+      _puedeIniciarActividad = jornadaStatus['puede_iniciar_actividad'] ?? false;
+      _puedeFinalizarActividad = jornadaStatus['puede_finalizar_actividad'] ?? false;
+      _actividadEnProceso = jornadaStatus['actividad_en_proceso'];
       _mensajeJornada = jornadaStatus['mensaje'] ?? "";
       
       // Actualizar el estado local basado en lo que dice el servidor
@@ -448,6 +460,13 @@ class AttendanceProvider with ChangeNotifier {
     if (_isActionLoading) return false;
     if (_state.status == AttendanceStatus.sinMarcar || _state.status == AttendanceStatus.salidaRegistrada) return false;
 
+    // Bloquear salida si hay actividad en proceso (asesor)
+    if (isAsesor && _actividadEnProceso != null) {
+      _mensajeJornada = "Debes finalizar la actividad de campo antes de marcar salida.";
+      notifyListeners();
+      return false;
+    }
+
     _isActionLoading = true;
     notifyListeners();
 
@@ -459,7 +478,7 @@ class AttendanceProvider with ChangeNotifier {
         type: 'SALIDA',
         lat: position.latitude,
         lng: position.longitude,
-        deviceInfo: 'Flutter Device',
+        deviceInfo: deviceInfo,
       );
 
       if (result != null) {
@@ -479,8 +498,95 @@ class AttendanceProvider with ChangeNotifier {
 
         await loadInitialData();
         return true;
+      } else {
+        // Si el backend responde error (ej. "Finaliza la actividad antes de marcar salida")
+        // No actualizamos localmente y esperamos a que el usuario vea la alerta o el estado se recargue.
+        await loadInitialData();
+        return false;
       }
-      return false;
+    } finally {
+      _isActionLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>?> startActividadFlow({
+    required String type,
+    required String titulo,
+    required String descripcion,
+    required String clienteNombre,
+    String? clienteDocumento,
+    String? clienteTelefono,
+    String? direccionActividad,
+    String? evidencePath,
+  }) async {
+    if (_isActionLoading) return {'success': false, 'message': 'Acción en curso'};
+    _isActionLoading = true;
+    notifyListeners();
+
+    try {
+      final position = await _locationService.getCurrentLocation();
+      if (position == null) return {'success': false, 'message': 'No se pudo obtener la ubicación GPS'};
+
+      final result = await _apiService.startActividad(
+        type: type,
+        titulo: titulo,
+        descripcion: descripcion,
+        clienteNombre: clienteNombre,
+        clienteDocumento: clienteDocumento,
+        clienteTelefono: clienteTelefono,
+        direccionActividad: direccionActividad,
+        lat: position.latitude,
+        lng: position.longitude,
+        deviceInfo: deviceInfo,
+        evidencePath: evidencePath,
+      );
+
+      if (result != null && result['error'] == null) {
+        await loadInitialData();
+        return {'success': true, 'data': result};
+      } else {
+        String errorMsg = result?['error']?['error'] ?? result?['error']?['detail'] ?? "Error al iniciar actividad";
+        return {'success': false, 'message': errorMsg};
+      }
+    } finally {
+      _isActionLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>?> finishActividadFlow({
+    required String resultado,
+    String? observacion,
+    String? evidencePath,
+  }) async {
+    if (_isActionLoading) return {'success': false, 'message': 'Acción en curso'};
+    if (_actividadEnProceso == null) return {'success': false, 'message': 'No hay actividad en proceso'};
+
+    _isActionLoading = true;
+    notifyListeners();
+
+    try {
+      final position = await _locationService.getCurrentLocation();
+      if (position == null) return {'success': false, 'message': 'No se pudo obtener la ubicación GPS'};
+
+      final result = await _apiService.finishActividad(
+        actividadId: _actividadEnProceso!['id'],
+        resultado: resultado,
+        observacion: observacion,
+        lat: position.latitude,
+        lng: position.longitude,
+        deviceInfo: deviceInfo,
+        evidencePath: evidencePath,
+      );
+
+      if (result != null && result['error'] == null) {
+        await loadInitialData();
+        return {'success': true, 'data': result};
+      } else {
+        String errorMsg = result?['error']?['error'] ?? result?['error']?['detail'] ?? "Error al finalizar actividad";
+        return {'success': false, 'message': errorMsg};
+      }
     } finally {
       _isActionLoading = false;
       notifyListeners();

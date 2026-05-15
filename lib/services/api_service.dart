@@ -359,4 +359,102 @@ class ApiService {
       return null;
     }
   }
+
+  Future<Map<String, dynamic>?> startActividad({
+    required String type,
+    required String titulo,
+    required String descripcion,
+    required String clienteNombre,
+    String? clienteDocumento,
+    String? clienteTelefono,
+    String? direccionActividad,
+    double? lat,
+    double? lng,
+    String? deviceInfo,
+    String? evidencePath,
+  }) async {
+    if (_token == null) return null;
+
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/jornada-actividades/iniciar/'),
+      );
+
+      request.headers.addAll({'Authorization': 'Bearer $_token'});
+
+      request.fields['tipo_actividad'] = type;
+      request.fields['titulo'] = titulo;
+      request.fields['descripcion'] = descripcion;
+      request.fields['cliente_nombre'] = clienteNombre;
+      if (clienteDocumento != null) request.fields['cliente_documento'] = clienteDocumento;
+      if (clienteTelefono != null) request.fields['cliente_telefono'] = clienteTelefono;
+      if (direccionActividad != null) request.fields['direccion_actividad'] = direccionActividad;
+      if (lat != null) request.fields['latitud_inicio'] = lat.toString();
+      if (lng != null) request.fields['longitud_inicio'] = lng.toString();
+      if (deviceInfo != null) request.fields['dispositivo_inicio'] = deviceInfo;
+
+      if (evidencePath != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath('evidencia_inicio_url', evidencePath),
+        );
+      }
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return {'error': jsonDecode(response.body)};
+    } catch (e) {
+      print('Error al iniciar actividad: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> finishActividad({
+    required int actividadId,
+    required String resultado,
+    String? observacion,
+    double? lat,
+    double? lng,
+    String? deviceInfo,
+    String? evidencePath,
+  }) async {
+    if (_token == null) return null;
+
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/jornada-actividades/finalizar/'),
+      );
+
+      request.headers.addAll({'Authorization': 'Bearer $_token'});
+
+      request.fields['actividad_id'] = actividadId.toString();
+      request.fields['resultado_actividad'] = resultado;
+      if (observacion != null) request.fields['observacion'] = observacion;
+      if (lat != null) request.fields['latitud_fin'] = lat.toString();
+      if (lng != null) request.fields['longitud_fin'] = lng.toString();
+      if (deviceInfo != null) request.fields['dispositivo_fin'] = deviceInfo;
+
+      if (evidencePath != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath('evidencia_fin_url', evidencePath),
+        );
+      }
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return {'error': jsonDecode(response.body)};
+    } catch (e) {
+      print('Error al finalizar actividad: $e');
+      return null;
+    }
+  }
 }

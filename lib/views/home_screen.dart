@@ -6,6 +6,8 @@ import '../models/attendance_state.dart';
 import 'incident_screen.dart';
 import 'history_screen.dart';
 import 'login_screen.dart';
+import 'activity_form_screen.dart';
+import 'activity_finish_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -101,6 +103,10 @@ class HomeContent extends StatelessWidget {
                 _buildGreeting(context),
                 const SizedBox(height: 24),
                 _buildStatusCard(context, attendanceProvider.state),
+                if (attendanceProvider.isAsesor && attendanceProvider.isJornadaActiva) ...[
+                  const SizedBox(height: 24),
+                  _buildActivityCard(context, attendanceProvider),
+                ],
                 const SizedBox(height: 32),
                 _buildActionButtons(context, attendanceProvider),
               ],
@@ -252,6 +258,98 @@ class HomeContent extends StatelessWidget {
     );
   }
 
+  Widget _buildActivityCard(BuildContext context, AttendanceProvider provider) {
+    final activity = provider.actividadEnProceso;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.assignment, color: Colors.blue),
+                const SizedBox(width: 12),
+                Text(
+                  "Actividad de campo",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const Divider(height: 32),
+            if (activity != null) ...[
+              Text(
+                activity['titulo'] ?? 'Sin título',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.person, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text("Cliente: ${activity['cliente_nombre'] ?? 'N/A'}", style: const TextStyle(color: Colors.grey)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text("Iniciado: ${activity['hora_inicio_actividad'] != null ? DateFormat('HH:mm').format(DateTime.parse(activity['hora_inicio_actividad'])) : 'N/A'}", style: const TextStyle(color: Colors.grey)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 16),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "Finaliza esta actividad para poder marcar salida.",
+                        style: TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              _ActionButton(
+                label: "Finalizar actividad",
+                icon: Icons.check_circle,
+                color: Colors.green,
+                onPressed: provider.puedeFinalizarActividad 
+                  ? () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityFinishScreen()))
+                  : null,
+              ),
+            ] else ...[
+              const Text(
+                "No hay actividad en proceso",
+                style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+              ),
+              const SizedBox(height: 16),
+              _ActionButton(
+                label: "Iniciar actividad",
+                icon: Icons.add_task,
+                color: Colors.blue,
+                onPressed: provider.puedeIniciarActividad
+                  ? () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityFormScreen()))
+                  : null,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildActionButtons(BuildContext context, AttendanceProvider provider) {
     final status = provider.state.status;
 
@@ -356,8 +454,10 @@ class HomeContent extends StatelessWidget {
                   bool success = await provider.markExit();
                   if (!success && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Error al marcar. Verifique su GPS."),
+                      SnackBar(
+                        content: Text(provider.mensajeJornada.isNotEmpty 
+                          ? provider.mensajeJornada 
+                          : "Error al marcar. Verifique su GPS."),
                         backgroundColor: Colors.red,
                       ),
                     );

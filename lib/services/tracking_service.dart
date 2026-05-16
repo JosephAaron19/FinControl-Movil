@@ -112,40 +112,48 @@ void onStartBackground(ServiceInstance service) async {
     }
   }
 
+  Future<void> syncPendingPoints() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> pending = prefs.getStringList('pending_points') ?? [];
+    if (pending.isEmpty) return;
+
+    List<String> remaining = [];
+    bool hasToken = await apiService.loadToken();
+    if (!hasToken) return;
+
+    for (String pointStr in pending) {
+      try {
+        final Map<String, dynamic> point = jsonDecode(pointStr);
+        final success = await apiService.sendTrackingPoint(
+          asistenciaId: point['asistencia'],
+          historialJornadaId: point['historial_jornada_id'],
+          lat: point['latitud'],
+          lng: point['longitud'],
+          precision: point['precision_metros'],
+          bateria: point['bateria_porcentaje'],
+          deviceInfo: '${point['dispositivo_info']} (Offline Sync)',
+        );
+
+        if (!success) {
+          remaining.add(pointStr);
+        }
+      } catch (e) {
+        print("Error syncing point: $e");
+      }
+    }
+    await prefs.setStringList('pending_points', remaining);
+  }
+
   Future<void> captureAndSendPoint() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final int? asistenciaId = prefs.getInt('asistencia_id');
       final int? historialId = prefs.getInt('historial_jornada_id');
 
-      if (asistenciaId == null) {
-        flutterLocalNotificationsPlugin.show(
-          889,
-          'Debug',
-          'Error: asistenciaId es null',
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              'tracking_channel',
-              'Debug',
-              importance: Importance.max,
-            ),
-          ),
-        );
-        return;
-      }
+      if (asistenciaId == null) return;
 
-      flutterLocalNotificationsPlugin.show(
-        890,
-        'Debug',
-        'Obteniendo GPS...',
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'tracking_channel',
-            'Debug',
-            importance: Importance.max,
-          ),
-        ),
-      );
+      // Primero intentar sincronizar puntos antiguos
+      await syncPendingPoints();
 
       final Position pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
@@ -159,19 +167,6 @@ void onStartBackground(ServiceInstance service) async {
         deviceModel = "${androidInfo.brand} ${androidInfo.model}";
       } catch (_) {}
 
-      flutterLocalNotificationsPlugin.show(
-        891,
-        'Debug',
-        'Enviando a API...',
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'tracking_channel',
-            'Debug',
-            importance: Importance.max,
-          ),
-        ),
-      );
-
       final success = await apiService.sendTrackingPoint(
         asistenciaId: asistenciaId,
         historialJornadaId: historialId ?? asistenciaId,
@@ -183,18 +178,6 @@ void onStartBackground(ServiceInstance service) async {
       );
 
       if (!success) {
-        flutterLocalNotificationsPlugin.show(
-          892,
-          'Debug',
-          'Fallo al enviar a API (Server Error o Red)',
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              'tracking_channel',
-              'Debug',
-              importance: Importance.max,
-            ),
-          ),
-        );
         List<String> pending = prefs.getStringList('pending_points') ?? [];
         pending.add(
           jsonEncode({
@@ -209,33 +192,8 @@ void onStartBackground(ServiceInstance service) async {
           }),
         );
         await prefs.setStringList('pending_points', pending);
-      } else {
-        flutterLocalNotificationsPlugin.show(
-          893,
-          'Debug',
-          '¡Punto enviado exitosamente a Django!',
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              'tracking_channel',
-              'Debug',
-              importance: Importance.max,
-            ),
-          ),
-        );
       }
     } catch (e) {
-      flutterLocalNotificationsPlugin.show(
-        894,
-        'Debug',
-        'Excepción: $e',
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'tracking_channel',
-            'Debug',
-            importance: Importance.max,
-          ),
-        ),
-      );
       print("Tracking Error: $e");
     }
   }
@@ -247,15 +205,18 @@ void onStartBackground(ServiceInstance service) async {
     if (service is AndroidServiceInstance) {
       if (await service.isForegroundService()) {
         flutterLocalNotificationsPlugin.show(
-          888,
+          TrackingService.notificationId,
           'Jornada Activa',
-          'Capturando ubicación... (${DateTime.now().hour}:${DateTime.now().minute})',
+          'Sincronizando ubicación... (${DateTime.now().hour}:${DateTime.now().minute})',
           const NotificationDetails(
             android: AndroidNotificationDetails(
-              'tracking_channel',
+              TrackingService.notificationChannelId,
               'FinControl Tracking',
               ongoing: true,
               icon: '@mipmap/ic_launcher',
+              importance: Importance.low,
+              priority: Priority.low,
+              showWhen: false,
             ),
           ),
         );

@@ -22,22 +22,28 @@ class _LoginScreenState extends State<LoginScreen> {
     
     setState(() => _isLoading = true);
     
-    final success = await provider.login(
+    final result = await provider.login(
       _dniController.text.trim(),
       _passwordController.text.trim(),
       rememberMe: _rememberMe,
     );
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (success && mounted) {
+    if (result['success'] == true && mounted) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
     } else if (mounted) {
+      final message = result['message'] ?? 'Error: DNI o contraseña incorrectos';
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error: DNI o contraseña incorrectos')),
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 5),
+        ),
       );
     }
   }

@@ -12,6 +12,8 @@ class AttendanceRecord {
   final double? longitude;
   final String? incidentType;
   final String? incidentDescription;
+  final String? estadoPuntualidad;
+  final String? estadoSalida;
 
   AttendanceRecord({
     required this.date,
@@ -25,6 +27,8 @@ class AttendanceRecord {
     this.longitude,
     this.incidentType,
     this.incidentDescription,
+    this.estadoPuntualidad,
+    this.estadoSalida,
   });
 
   factory AttendanceRecord.fromJson(Map<String, dynamic> json) {
@@ -44,6 +48,8 @@ class AttendanceRecord {
       sede: json['sede_nombre'] ?? "Sede Central",
       latitude: json['latitud_entrada'] != null ? double.parse(json['latitud_entrada'].toString()) : null,
       longitude: json['longitud_entrada'] != null ? double.parse(json['longitud_entrada'].toString()) : null,
+      estadoPuntualidad: json['estado_puntualidad'],
+      estadoSalida: json['estado_salida'],
     );
   }
 

@@ -3,8 +3,11 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
+  // URL de desarrollo local
+  // static const String baseUrl = 'http://192.168.137.1:8000/api';
   // URL de producción de la API
   static const String baseUrl = 'https://apifincontrol.finatech.com.pe/api';
+  // static const String baseUrl = 'http://192.168.1.123:8000/api';
 
   String? _token;
   String? get token => _token;
@@ -59,7 +62,7 @@ class ApiService {
     }
   }
 
-  Future<bool> login(
+  Future<Map<String, dynamic>> login(
     String dni,
     String password, {
     bool rememberMe = false,
@@ -75,8 +78,9 @@ class ApiService {
               'origen': 'movil',
             }),
           )
-          .timeout(const Duration(seconds: 10));
-      print('Login response: ${response.body}');
+          .timeout(const Duration(seconds: 20));
+      print('Login response status: ${response.statusCode}');
+      print('Login response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -86,12 +90,31 @@ class ApiService {
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('remember_me', rememberMe);
-        return true;
+        return {'success': true};
+      } else {
+        String message = 'Error: DNI o contraseña incorrectos';
+        try {
+          final data = jsonDecode(response.body);
+          if (data['detail'] != null) {
+            message = data['detail'];
+          } else if (data['error'] != null) {
+            message = data['error'];
+          }
+        } catch (_) {}
+        return {'success': false, 'message': message};
       }
-      return false;
     } catch (e) {
       print('Error en login: $e');
-      return false;
+      String errorMsg =
+          'Error de conexión. Verifique que el servidor esté activo en $baseUrl';
+      if (e.toString().contains('TimeoutException')) {
+        errorMsg =
+            'Tiempo de espera agotado. No se pudo conectar con el servidor.';
+      } else if (e.toString().contains('SocketException')) {
+        errorMsg =
+            'No se pudo establecer conexión con el servidor. Verifique su red y la IP $baseUrl';
+      }
+      return {'success': false, 'message': errorMsg};
     }
   }
 
@@ -387,20 +410,28 @@ class ApiService {
       request.fields['titulo'] = titulo;
       request.fields['descripcion'] = descripcion;
       request.fields['cliente_nombre'] = clienteNombre;
-      if (clienteDocumento != null) request.fields['cliente_documento'] = clienteDocumento;
-      if (clienteTelefono != null) request.fields['cliente_telefono'] = clienteTelefono;
-      if (direccionActividad != null) request.fields['direccion_actividad'] = direccionActividad;
+      if (clienteDocumento != null)
+        request.fields['cliente_documento'] = clienteDocumento;
+      if (clienteTelefono != null)
+        request.fields['cliente_telefono'] = clienteTelefono;
+      if (direccionActividad != null)
+        request.fields['direccion_actividad'] = direccionActividad;
       if (lat != null) request.fields['latitud_inicio'] = lat.toString();
       if (lng != null) request.fields['longitud_inicio'] = lng.toString();
       if (deviceInfo != null) request.fields['dispositivo_inicio'] = deviceInfo;
 
       if (evidencePath != null) {
         request.files.add(
-          await http.MultipartFile.fromPath('evidencia_inicio_url', evidencePath),
+          await http.MultipartFile.fromPath(
+            'evidencia_inicio_url',
+            evidencePath,
+          ),
         );
       }
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+      );
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 201 || response.statusCode == 200) {
@@ -445,7 +476,9 @@ class ApiService {
         );
       }
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+      );
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {

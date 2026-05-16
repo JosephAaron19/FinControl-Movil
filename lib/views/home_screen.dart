@@ -355,24 +355,42 @@ class HomeContent extends StatelessWidget {
 
     return Column(
       children: [
-        if (status == AttendanceStatus.sinMarcar && !provider.puedeMarcarEntrada && provider.mensajeJornada.isNotEmpty)
+        if (provider.mensajeJornada.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: (status == AttendanceStatus.sinMarcar && !provider.puedeMarcarEntrada) 
+                    ? Colors.red.withOpacity(0.1) 
+                    : Colors.blue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.withOpacity(0.5)),
+                border: Border.all(
+                  color: (status == AttendanceStatus.sinMarcar && !provider.puedeMarcarEntrada) 
+                      ? Colors.red.withOpacity(0.5) 
+                      : Colors.blue.withOpacity(0.5)
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                  Icon(
+                    (status == AttendanceStatus.sinMarcar && !provider.puedeMarcarEntrada) 
+                        ? Icons.warning_amber_rounded 
+                        : Icons.info_outline, 
+                    color: (status == AttendanceStatus.sinMarcar && !provider.puedeMarcarEntrada) 
+                        ? Colors.red 
+                        : Colors.blue
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       provider.mensajeJornada,
-                      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: (status == AttendanceStatus.sinMarcar && !provider.puedeMarcarEntrada) 
+                            ? Colors.red 
+                            : Colors.blue[300], 
+                        fontWeight: FontWeight.w600
+                      ),
                     ),
                   ),
                 ],

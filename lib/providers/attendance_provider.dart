@@ -214,12 +214,12 @@ class AttendanceProvider with ChangeNotifier {
     return await _locationService.getCurrentLocation();
   }
 
-  Future<bool> login(String dni, String password, {bool rememberMe = false}) async {
+  Future<Map<String, dynamic>> login(String dni, String password, {bool rememberMe = false}) async {
     _isLoading = true;
     notifyListeners();
 
-    final success = await _apiService.login(dni, password, rememberMe: rememberMe);
-    if (success) {
+    final response = await _apiService.login(dni, password, rememberMe: rememberMe);
+    if (response['success'] == true) {
       await loadInitialData();
       _initWebSocket();
       _startSyncTimer();
@@ -227,7 +227,7 @@ class AttendanceProvider with ChangeNotifier {
     
     _isLoading = false;
     notifyListeners();
-    return success;
+    return response;
   }
 
   void logout() async {

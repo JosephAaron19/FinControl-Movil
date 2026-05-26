@@ -10,7 +10,6 @@ import '../services/location_service.dart';
 import '../services/api_service.dart';
 import '../services/tracking_service.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:web_socket_channel/status.dart' as status_codes;
 
 class AttendanceProvider with ChangeNotifier {
   WebSocketChannel? _socketChannel;
@@ -22,6 +21,7 @@ class AttendanceProvider with ChangeNotifier {
   Map<String, dynamic>? _userProfile;
   List<AttendanceRecord> _history = [];
   bool _isLoading = false;
+  bool _isCheckingSession = true;
   bool _isActionLoading = false;
   bool _puedeMarcarEntrada = false;
   bool _puedeIniciarDescanso = false;
@@ -50,9 +50,16 @@ class AttendanceProvider with ChangeNotifier {
   Map<String, dynamic>? get userProfile => _userProfile;
   List<AttendanceRecord> get history => _history;
   bool get isLoading => _isLoading;
+  bool get isCheckingSession => _isCheckingSession;
   String get deviceInfo => "Flutter Device (Android/iOS)";
 
-  String get userRole => _userProfile?['rol']?.toString().toLowerCase() ?? 'operador';
+  String get userRole {
+    final rolInfo = _userProfile?['rol_info'];
+    if (rolInfo is Map) {
+      return (rolInfo['codigo'] ?? rolInfo['nombre'] ?? 'operador').toString().toLowerCase();
+    }
+    return 'operador';
+  }
   bool get isAsesor => userRole == 'asesor';
   
   bool get isJornadaActiva {
@@ -140,30 +147,36 @@ class AttendanceProvider with ChangeNotifier {
 
   Future<void> checkPersistentSession() async {
     _isLoading = true;
+    _isCheckingSession = true;
     notifyListeners();
     
-    final prefs = await SharedPreferences.getInstance();
-    bool rememberMe = prefs.getBool('remember_me') ?? false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      bool rememberMe = prefs.getBool('remember_me') ?? false;
 
-    if (rememberMe) {
-      bool hasToken = await _apiService.loadToken();
-      if (hasToken) {
-        // Cargar perfil desde cache inmediatamente para no bloquear el UI
-        _userProfile = await _apiService.getCachedUserProfile();
-        
-        // Iniciar la carga de datos de la red en segundo plano (o bloqueante pero con timeout corto)
-        await loadInitialData();
-        _startSyncTimer();
+      if (rememberMe) {
+        bool hasToken = await _apiService.loadToken();
+        if (hasToken) {
+          // Cargar perfil desde cache inmediatamente para no bloquear el UI
+          _userProfile = await _apiService.getCachedUserProfile();
+          
+          // Iniciar la carga de datos de la red en segundo plano (o bloqueante pero con timeout corto)
+          await loadInitialData();
+          _startSyncTimer();
+        } else {
+          await _apiService.logout();
+        }
       } else {
+        // Si no marcó mantener sesión activa, forzar cierre al abrir la app
         await _apiService.logout();
       }
-    } else {
-      // Si no marcó mantener sesión activa, forzar cierre al abrir la app
-      await _apiService.logout();
+    } catch (e) {
+      print("Error al verificar sesión persistente: $e");
+    } finally {
+      _isLoading = false;
+      _isCheckingSession = false;
+      notifyListeners();
     }
-    
-    _isLoading = false;
-    notifyListeners();
   }
 
   Future<void> requestEnableGps() async {
@@ -288,16 +301,41 @@ class AttendanceProvider with ChangeNotifier {
       _actividadEnProceso = jornadaStatus['actividad_en_proceso'];
       _mensajeJornada = jornadaStatus['mensaje'] ?? "";
       
+      final horarioActual = jornadaStatus['horario_actual'];
+      String? hNombre;
+      String? hInicioEntrada;
+      String? hFinEntrada;
+      String? hInicioSalida;
+      String? hFinSalida;
+
+      if (horarioActual is Map) {
+        hNombre = horarioActual['nombre']?.toString();
+        hInicioEntrada = horarioActual['hora_inicio_entrada']?.toString();
+        hFinEntrada = horarioActual['hora_fin_entrada']?.toString();
+        hInicioSalida = horarioActual['hora_inicio_salida']?.toString();
+        hFinSalida = horarioActual['hora_fin_salida']?.toString();
+      }
+
       // Actualizar el estado local basado en lo que dice el servidor
       final statusLower = (jornadaStatus['asistencia_estado'] ?? '').toString().toLowerCase();
       
+      AttendanceStatus finalStatus = _state.status;
       if (statusLower == 'justificado') {
-        _state = _state.copyWith(status: AttendanceStatus.justificado);
+        finalStatus = AttendanceStatus.justificado;
       } else if (statusLower == 'no_marco_entrada') {
-        _state = _state.copyWith(status: AttendanceStatus.noMarcoEntrada);
+        finalStatus = AttendanceStatus.noMarcoEntrada;
       } else if (statusLower == 'tardanza' && (_state.status == AttendanceStatus.sinMarcar || _state.status == AttendanceStatus.noMarcoEntrada)) {
-        _state = _state.copyWith(status: AttendanceStatus.tardanza);
+        finalStatus = AttendanceStatus.tardanza;
       }
+
+      _state = _state.copyWith(
+        status: finalStatus,
+        horarioNombre: hNombre,
+        horarioInicioEntrada: hInicioEntrada,
+        horarioFinEntrada: hFinEntrada,
+        horarioInicioSalida: hInicioSalida,
+        horarioFinSalida: hFinSalida,
+      );
     }
     
     notifyListeners();

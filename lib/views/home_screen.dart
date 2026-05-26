@@ -244,6 +244,19 @@ class HomeContent extends StatelessWidget {
                 Text(sede, style: const TextStyle(fontWeight: FontWeight.w500)),
               ],
             ),
+            if (state.horarioNombre != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Horario:", style: TextStyle(color: Colors.grey)),
+                  Text(
+                    "${state.horarioNombre} (${state.horarioInicioEntrada ?? ''} - ${state.horarioFinSalida ?? ''})",
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 8),
             const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

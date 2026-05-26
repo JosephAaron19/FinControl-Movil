@@ -52,7 +52,7 @@ class _RootGateState extends State<RootGate> {
   Widget build(BuildContext context) {
     final provider = context.watch<AttendanceProvider>();
 
-    if (provider.isLoading && provider.userProfile == null) {
+    if (provider.isCheckingSession && provider.userProfile == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 

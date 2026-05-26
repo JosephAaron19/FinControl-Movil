@@ -20,6 +20,11 @@ class AttendanceState {
   final String? lastLocation;
   final double? latitude;
   final double? longitude;
+  final String? horarioNombre;
+  final String? horarioInicioEntrada;
+  final String? horarioFinEntrada;
+  final String? horarioInicioSalida;
+  final String? horarioFinSalida;
 
   AttendanceState({
     this.status = AttendanceStatus.sinMarcar,
@@ -30,6 +35,11 @@ class AttendanceState {
     this.lastLocation,
     this.latitude,
     this.longitude,
+    this.horarioNombre,
+    this.horarioInicioEntrada,
+    this.horarioFinEntrada,
+    this.horarioInicioSalida,
+    this.horarioFinSalida,
   });
 
   AttendanceState copyWith({
@@ -41,6 +51,11 @@ class AttendanceState {
     String? lastLocation,
     double? latitude,
     double? longitude,
+    String? horarioNombre,
+    String? horarioInicioEntrada,
+    String? horarioFinEntrada,
+    String? horarioInicioSalida,
+    String? horarioFinSalida,
   }) {
     return AttendanceState(
       status: status ?? this.status,
@@ -51,6 +66,11 @@ class AttendanceState {
       lastLocation: lastLocation ?? this.lastLocation,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      horarioNombre: horarioNombre ?? this.horarioNombre,
+      horarioInicioEntrada: horarioInicioEntrada ?? this.horarioInicioEntrada,
+      horarioFinEntrada: horarioFinEntrada ?? this.horarioFinEntrada,
+      horarioInicioSalida: horarioInicioSalida ?? this.horarioInicioSalida,
+      horarioFinSalida: horarioFinSalida ?? this.horarioFinSalida,
     );
   }
 }

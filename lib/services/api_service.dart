@@ -6,8 +6,9 @@ class ApiService {
   // URL de desarrollo local
   // static const String baseUrl = 'http://192.168.137.1:8000/api';
   // URL de producción de la API
-  static const String baseUrl = 'https://apifincontrol.finatech.com.pe/api';
-  // static const String baseUrl = 'http://192.168.1.123:8000/api';
+  // static const String baseUrl = 'https://apifincontrol.finatech.com.pe/api';
+  // URL de desarrollo local con IP de tu máquina
+  static const String baseUrl = 'http://10.185.254.252:8001/api';
 
   String? _token;
   String? get token => _token;

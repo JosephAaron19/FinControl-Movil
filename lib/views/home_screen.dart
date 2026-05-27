@@ -95,21 +95,27 @@ class HomeContent extends StatelessWidget {
               const SizedBox(width: 8),
             ],
           ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildGreeting(context),
-                const SizedBox(height: 24),
-                _buildStatusCard(context, attendanceProvider.state),
-                if (attendanceProvider.isAsesor && attendanceProvider.isJornadaActiva) ...[
+          body: RefreshIndicator(
+            onRefresh: () async {
+              await attendanceProvider.loadInitialData();
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildGreeting(context),
                   const SizedBox(height: 24),
-                  _buildActivityCard(context, attendanceProvider),
+                  _buildStatusCard(context, attendanceProvider.state),
+                  if (attendanceProvider.isAsesor && attendanceProvider.isJornadaActiva) ...[
+                    const SizedBox(height: 24),
+                    _buildActivityCard(context, attendanceProvider),
+                  ],
+                  const SizedBox(height: 32),
+                  _buildActionButtons(context, attendanceProvider),
                 ],
-                const SizedBox(height: 32),
-                _buildActionButtons(context, attendanceProvider),
-              ],
+              ),
             ),
           ),
         ),

@@ -8,7 +8,7 @@ class ApiService {
   // URL de producción de la API
   // static const String baseUrl = 'https://apifincontrol.finatech.com.pe/api';
   // URL de desarrollo local con IP de tu máquina
-  static const String baseUrl = 'http://10.185.254.252:8001/api';
+  static const String baseUrl = 'http://192.168.1.150:8001/api';
 
   String? _token;
   String? get token => _token;
@@ -254,6 +254,12 @@ class ApiService {
       if (response.statusCode == 201 || response.statusCode == 200) {
         return {'success': true};
       } else {
+        if (response.statusCode == 413) {
+          return {
+            'success': false,
+            'message': 'La imagen es muy pesada. Reduzca la calidad o use otra imagen.'
+          };
+        }
         String errorMsg = "Error al enviar la incidencia";
         try {
           final errorData = jsonDecode(response.body);
@@ -263,7 +269,10 @@ class ApiService {
       }
     } catch (e) {
       print('Error al reportar incidencia: $e');
-      return {'success': false, 'message': 'Error de conexión: $e'};
+      return {
+        'success': false,
+        'message': 'No se pudo subir la imagen o enviar la incidencia. Intente nuevamente o use una imagen más liviana.'
+      };
     }
   }
 
@@ -438,10 +447,21 @@ class ApiService {
       if (response.statusCode == 201 || response.statusCode == 200) {
         return jsonDecode(response.body);
       }
+      if (response.statusCode == 413) {
+        return {
+          'error': {
+            'error': 'La imagen es muy pesada. Reduzca la calidad o use otra imagen.'
+          }
+        };
+      }
       return {'error': jsonDecode(response.body)};
     } catch (e) {
       print('Error al iniciar actividad: $e');
-      return null;
+      return {
+        'error': {
+          'error': 'No se pudo subir la imagen o iniciar actividad. Intente nuevamente o use una imagen más liviana.'
+        }
+      };
     }
   }
 
@@ -485,10 +505,21 @@ class ApiService {
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
+      if (response.statusCode == 413) {
+        return {
+          'error': {
+            'error': 'La imagen es muy pesada. Reduzca la calidad o use otra imagen.'
+          }
+        };
+      }
       return {'error': jsonDecode(response.body)};
     } catch (e) {
       print('Error al finalizar actividad: $e');
-      return null;
+      return {
+        'error': {
+          'error': 'No se pudo subir la imagen o finalizar la actividad. Intente nuevamente o use una imagen más liviana.'
+        }
+      };
     }
   }
 }

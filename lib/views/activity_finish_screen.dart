@@ -28,7 +28,12 @@ class _ActivityFinishScreenState extends State<ActivityFinishScreen> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.camera, imageQuality: 70);
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 70,
+      maxWidth: 1920,
+      maxHeight: 1080,
+    );
     if (pickedFile != null) {
       setState(() {
         _evidenceImage = File(pickedFile.path);

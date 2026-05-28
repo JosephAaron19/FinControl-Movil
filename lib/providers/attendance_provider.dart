@@ -109,14 +109,14 @@ class AttendanceProvider with ChangeNotifier {
       },
       onError: (error) {
         print('Error en WebSocket: $error');
-        // Reintentar después de un tiempo
-        Future.delayed(const Duration(seconds: 5), _initWebSocket);
+        // Reintentar después de un tiempo (más conservador para evitar consumo excesivo)
+        Future.delayed(const Duration(seconds: 30), _initWebSocket);
       },
       onDone: () {
         print('Conexión WebSocket cerrada');
         // Reintentar si se cerró inesperadamente
         if (_apiService.token != null) {
-          Future.delayed(const Duration(seconds: 5), _initWebSocket);
+          Future.delayed(const Duration(seconds: 30), _initWebSocket);
         }
       },
     );

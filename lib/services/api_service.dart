@@ -6,9 +6,9 @@ class ApiService {
   // URL de desarrollo local
   // static const String baseUrl = 'http://192.168.137.1:8000/api';
   // URL de producción de la API
-  // static const String baseUrl = 'https://apifincontrol.finatech.com.pe/api';
+  static const String baseUrl = 'https://apifincontrol.finatech.com.pe/api';
   // URL de desarrollo local con IP de tu máquina
-  static const String baseUrl = 'http://192.168.1.150:8001/api';
+  //static const String baseUrl = 'http://192.168.1.150:8001/api';
 
   String? _token;
   String? get token => _token;
@@ -93,13 +93,31 @@ class ApiService {
         await prefs.setBool('remember_me', rememberMe);
         return {'success': true};
       } else {
-        String message = 'Error: DNI o contraseña incorrectos';
+        String message =
+            'DNI o contraseña incorrectos. Verifique sus credenciales.';
         try {
           final data = jsonDecode(response.body);
           if (data['detail'] != null) {
-            message = data['detail'];
+            final String detail = data['detail'].toString();
+            // Traducir mensajes de SimpleJWT al español
+            if (detail.contains(
+                    'No active account found with the given credentials') ||
+                detail.contains('No active account')) {
+              message =
+                  'DNI o contraseña incorrectos. Verifique sus credenciales.';
+            } else if (detail.contains('token_not_valid') ||
+                detail.contains('Token is invalid')) {
+              message = 'Sesión inválida. Por favor, inicie sesión nuevamente.';
+            } else {
+              message = detail;
+            }
           } else if (data['error'] != null) {
-            message = data['error'];
+            message = data['error'].toString();
+          } else if (data['non_field_errors'] != null) {
+            final errors = data['non_field_errors'];
+            message = (errors is List && errors.isNotEmpty)
+                ? errors[0].toString()
+                : message;
           }
         } catch (_) {}
         return {'success': false, 'message': message};
@@ -158,12 +176,10 @@ class ApiService {
     if (_token == null) return null;
 
     try {
-      final response = await http
-          .get(
-            Uri.parse('$baseUrl/auth/profile/'),
-            headers: {'Authorization': 'Bearer $_token'},
-          )
-          .timeout(const Duration(seconds: 10));
+      final response = await http.get(
+        Uri.parse('$baseUrl/auth/profile/'),
+        headers: {'Authorization': 'Bearer $_token'},
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -196,12 +212,10 @@ class ApiService {
     if (_token == null) return [];
 
     try {
-      final response = await http
-          .get(
-            Uri.parse('$baseUrl/attendance/history/'),
-            headers: {'Authorization': 'Bearer $_token'},
-          )
-          .timeout(const Duration(seconds: 10));
+      final response = await http.get(
+        Uri.parse('$baseUrl/attendance/history/'),
+        headers: {'Authorization': 'Bearer $_token'},
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -245,8 +259,8 @@ class ApiService {
       }
 
       final streamedResponse = await request.send().timeout(
-        const Duration(seconds: 30),
-      );
+            const Duration(seconds: 30),
+          );
       final response = await http.Response.fromStream(streamedResponse);
 
       print('Incident response: ${response.body}');
@@ -257,7 +271,8 @@ class ApiService {
         if (response.statusCode == 413) {
           return {
             'success': false,
-            'message': 'La imagen es muy pesada. Reduzca la calidad o use otra imagen.'
+            'message':
+                'La imagen es muy pesada. Reduzca la calidad o use otra imagen.'
           };
         }
         String errorMsg = "Error al enviar la incidencia";
@@ -271,7 +286,8 @@ class ApiService {
       print('Error al reportar incidencia: $e');
       return {
         'success': false,
-        'message': 'No se pudo subir la imagen o enviar la incidencia. Intente nuevamente o use una imagen más liviana.'
+        'message':
+            'No se pudo subir la imagen o enviar la incidencia. Intente nuevamente o use una imagen más liviana.'
       };
     }
   }
@@ -279,12 +295,10 @@ class ApiService {
   Future<Map<String, dynamic>?> getTrackingConfig() async {
     if (_token == null) return null;
     try {
-      final response = await http
-          .get(
-            Uri.parse('$baseUrl/configuracion-tracking/'),
-            headers: {'Authorization': 'Bearer $_token'},
-          )
-          .timeout(const Duration(seconds: 10));
+      final response = await http.get(
+        Uri.parse('$baseUrl/configuracion-tracking/'),
+        headers: {'Authorization': 'Bearer $_token'},
+      ).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) return jsonDecode(response.body);
       return null;
     } catch (e) {
@@ -359,9 +373,9 @@ class ApiService {
       if (lastSyncTimestamp != null) {
         uri = uri.replace(queryParameters: {'last_sync': lastSyncTimestamp});
       }
-      final response = await http
-          .get(uri, headers: {'Authorization': 'Bearer $_token'})
-          .timeout(const Duration(seconds: 10));
+      final response = await http.get(uri, headers: {
+        'Authorization': 'Bearer $_token'
+      }).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
@@ -376,12 +390,10 @@ class ApiService {
     if (_token == null) return null;
 
     try {
-      final response = await http
-          .get(
-            Uri.parse('$baseUrl/jornada/estado-marcacion/'),
-            headers: {'Authorization': 'Bearer $_token'},
-          )
-          .timeout(const Duration(seconds: 10));
+      final response = await http.get(
+        Uri.parse('$baseUrl/jornada/estado-marcacion/'),
+        headers: {'Authorization': 'Bearer $_token'},
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -440,8 +452,8 @@ class ApiService {
       }
 
       final streamedResponse = await request.send().timeout(
-        const Duration(seconds: 30),
-      );
+            const Duration(seconds: 30),
+          );
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 201 || response.statusCode == 200) {
@@ -450,7 +462,8 @@ class ApiService {
       if (response.statusCode == 413) {
         return {
           'error': {
-            'error': 'La imagen es muy pesada. Reduzca la calidad o use otra imagen.'
+            'error':
+                'La imagen es muy pesada. Reduzca la calidad o use otra imagen.'
           }
         };
       }
@@ -459,7 +472,8 @@ class ApiService {
       print('Error al iniciar actividad: $e');
       return {
         'error': {
-          'error': 'No se pudo subir la imagen o iniciar actividad. Intente nuevamente o use una imagen más liviana.'
+          'error':
+              'No se pudo subir la imagen o iniciar actividad. Intente nuevamente o use una imagen más liviana.'
         }
       };
     }
@@ -498,8 +512,8 @@ class ApiService {
       }
 
       final streamedResponse = await request.send().timeout(
-        const Duration(seconds: 30),
-      );
+            const Duration(seconds: 30),
+          );
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
@@ -508,7 +522,8 @@ class ApiService {
       if (response.statusCode == 413) {
         return {
           'error': {
-            'error': 'La imagen es muy pesada. Reduzca la calidad o use otra imagen.'
+            'error':
+                'La imagen es muy pesada. Reduzca la calidad o use otra imagen.'
           }
         };
       }
@@ -517,7 +532,8 @@ class ApiService {
       print('Error al finalizar actividad: $e');
       return {
         'error': {
-          'error': 'No se pudo subir la imagen o finalizar la actividad. Intente nuevamente o use una imagen más liviana.'
+          'error':
+              'No se pudo subir la imagen o finalizar la actividad. Intente nuevamente o use una imagen más liviana.'
         }
       };
     }

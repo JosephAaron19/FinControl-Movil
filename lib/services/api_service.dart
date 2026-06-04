@@ -3,12 +3,19 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // URL de desarrollo local
-  // static const String baseUrl = 'http://192.168.137.1:8000/api';
-  // URL de producción de la API
+  // ================= CONFIGURACIÓN DE URL DE LA API =================
+  // 1. Para Emulador de Android (puente local):
+  // static const String baseUrl = 'http://10.0.2.2:8001/api';
+  
+  // 2. Para Simulador de iOS o Web:
+  // static const String baseUrl = 'http://localhost:8001/api';
+  
+  // 3. Para Dispositivo Móvil Físico (conectado al mismo Wi-Fi que tu PC):
+  static const String baseUrl = 'http://192.168.1.128:8001/api';
+  
+  // 4. URL de producción de la API:
   // static const String baseUrl = 'https://apifincontrol.finatech.com.pe/api';
-  // URL de desarrollo local con IP de tu máquina
-  static const String baseUrl = 'http://localhost:8001/api';
+  // ===================================================================
 
   String? _token;
   String? get token => _token;

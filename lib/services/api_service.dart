@@ -6,15 +6,15 @@ class ApiService {
   // ================= CONFIGURACIÓN DE URL DE LA API =================
   // 1. Para Emulador de Android (puente local):
   // static const String baseUrl = 'http://10.0.2.2:8001/api';
-  
+
   // 2. Para Simulador de iOS o Web:
   // static const String baseUrl = 'http://localhost:8001/api';
-  
+
   // 3. Para Dispositivo Móvil Físico (conectado al mismo Wi-Fi que tu PC):
-  static const String baseUrl = 'http://192.168.1.128:8001/api';
-  
+  // static const String baseUrl = 'http://192.168.1.128:8001/api';
+
   // 4. URL de producción de la API:
-  // static const String baseUrl = 'https://apifincontrol.finatech.com.pe/api';
+  static const String baseUrl = 'https://apifincontrol.finatech.com.pe/api';
   // ===================================================================
 
   String? _token;
@@ -545,4 +545,34 @@ class ApiService {
       };
     }
   }
+
+  Future<Map<String, dynamic>> updateFCMToken(String fcmToken) async {
+    if (_token == null) {
+      return {'success': false, 'message': 'No hay sesión activa'};
+    }
+
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/users/me/fcm/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+        body: jsonEncode({'fcm': fcmToken}),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': jsonDecode(response.body)};
+      } else {
+        return {
+          'success': false,
+          'message': 'Error al actualizar FCM: ${response.statusCode} - ${response.body}'
+        };
+      }
+    } catch (e) {
+      print('Error al actualizar FCM en ApiService: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
 }
+

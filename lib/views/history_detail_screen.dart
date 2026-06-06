@@ -125,6 +125,7 @@ class HistoryDetailScreen extends StatelessWidget {
     );
   }
 
+  /*
   Widget _buildLocationCard() {
     return Card(
       child: Padding(
@@ -154,6 +155,7 @@ class HistoryDetailScreen extends StatelessWidget {
       ),
     );
   }
+  */
 }
 
 class _TimelineItem extends StatelessWidget {

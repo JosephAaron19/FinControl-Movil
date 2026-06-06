@@ -10,6 +10,7 @@ import '../services/location_service.dart';
 import '../services/api_service.dart';
 import '../services/tracking_service.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class AttendanceProvider with ChangeNotifier {
   WebSocketChannel? _socketChannel;
@@ -71,6 +72,38 @@ class AttendanceProvider with ChangeNotifier {
   AttendanceProvider() {
     _initGpsListener();
     _tryReconnectSocket();
+    _initFCMRefreshListener();
+  }
+
+  void _initFCMRefreshListener() {
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      print("FCM token refrescado por Firebase: $newToken");
+      if (_apiService.token != null) {
+        try {
+          await _apiService.updateFCMToken(newToken);
+        } catch (e) {
+          print("Error al enviar token refrescado al backend: $e");
+        }
+      }
+    });
+  }
+
+  Future<void> syncFCMToken() async {
+    if (_apiService.token == null) return;
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        final userId = _userProfile?['id'];
+        print("=================== REGISTRO FCM DISPOSITIVO ===================");
+        print("Usuario ID: $userId");
+        print("Token FCM: $token");
+        print("===============================================================");
+        final result = await _apiService.updateFCMToken(token);
+        print("Respuesta de Registro FCM: $result");
+      }
+    } catch (e) {
+      print("Error al sincronizar FCM token con backend: $e");
+    }
   }
 
   void _tryReconnectSocket() async {
@@ -163,6 +196,7 @@ class AttendanceProvider with ChangeNotifier {
           // Iniciar la carga de datos de la red en segundo plano (o bloqueante pero con timeout corto)
           await loadInitialData();
           _startSyncTimer();
+          unawaited(syncFCMToken());
         } else {
           await _apiService.logout();
         }
@@ -236,6 +270,7 @@ class AttendanceProvider with ChangeNotifier {
       await loadInitialData();
       _initWebSocket();
       _startSyncTimer();
+      unawaited(syncFCMToken());
     }
     
     _isLoading = false;

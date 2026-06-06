@@ -5,9 +5,34 @@ import 'providers/attendance_provider.dart';
 import 'views/login_screen.dart';
 import 'views/home_screen.dart';
 import 'services/tracking_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('es', null);
+
+  // Inicializar Firebase y obtener Token FCM
+  try {
+    await Firebase.initializeApp();
+    final FirebaseMessaging messaging = FirebaseMessaging.instance;
+    
+    // Solicitar permisos de notificación (para iOS y Android 13+)
+    await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    final String? fcmToken = await messaging.getToken();
+    print("=================== FCM TOKEN ===================");
+    print(fcmToken ?? "No se pudo obtener el token (es null)");
+    print("=================================================");
+  } catch (e) {
+    print("Error al inicializar Firebase / FCM: $e");
+  }
+
   await TrackingService.initializeService();
 
   runApp(
@@ -26,7 +51,7 @@ class FinControlApp extends StatelessWidget {
     return MaterialApp(
       title: 'FinControl',
       debugShowCheckedModeBanner: false,
-      theme: FinControlTheme.darkTheme,
+      theme: FinControlTheme.lightTheme,
       home: const RootGate(),
     );
   }

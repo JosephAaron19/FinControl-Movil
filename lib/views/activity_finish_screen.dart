@@ -30,9 +30,9 @@ class _ActivityFinishScreenState extends State<ActivityFinishScreen> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
       source: ImageSource.camera,
-      imageQuality: 70,
-      maxWidth: 1920,
-      maxHeight: 1080,
+      imageQuality: 30,
+      maxWidth: 800,
+      maxHeight: 800,
     );
     if (pickedFile != null) {
       setState(() {
@@ -69,6 +69,40 @@ class _ActivityFinishScreenState extends State<ActivityFinishScreen> {
     }
   }
 
+  InputDecoration _inputDecoration({
+    required String labelText,
+    required IconData prefixIcon,
+  }) {
+    return InputDecoration(
+      labelText: labelText,
+      labelStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
+      prefixIcon: Icon(prefixIcon, color: const Color(0xFF64748B)),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFF0EA5E9), width: 1.8),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.8),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final activity = Provider.of<AttendanceProvider>(context).actividadEnProceso;
@@ -80,6 +114,7 @@ class _ActivityFinishScreenState extends State<ActivityFinishScreen> {
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
         : SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.all(20),
             child: Form(
               key: _formKey,
@@ -87,31 +122,42 @@ class _ActivityFinishScreenState extends State<ActivityFinishScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (activity != null) ...[
-                    Card(
-                      color: Colors.blue.withOpacity(0.1),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text("Actividad en curso:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blue)),
-                            const SizedBox(height: 4),
-                            Text(activity['titulo'] ?? 'Sin título', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            Text("Cliente: ${activity['cliente_nombre'] ?? 'N/A'}", style: const TextStyle(color: Colors.grey)),
-                          ],
-                        ),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF), // soft blue background
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFBFDBFE), width: 1.5),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Actividad en curso:", 
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1D4ED8)),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            activity['titulo'] ?? 'Sin título', 
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Cliente: ${activity['cliente_nombre'] ?? 'N/A'}", 
+                            style: const TextStyle(color: Color(0xFF64748B)),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 24),
                   ],
                   DropdownButtonFormField<String>(
                     value: _resultado,
-                    decoration: const InputDecoration(
+                    decoration: _inputDecoration(
                       labelText: 'Resultado de la Actividad',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.check_circle),
+                      prefixIcon: Icons.check_circle_outlined,
                     ),
+                    dropdownColor: Colors.white,
                     items: _resultados.map((t) => DropdownMenuItem(
                       value: t['value'],
                       child: Text(t['label']!),
@@ -121,57 +167,94 @@ class _ActivityFinishScreenState extends State<ActivityFinishScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _observacionController,
-                    decoration: const InputDecoration(
+                    decoration: _inputDecoration(
                       labelText: 'Observaciones finales',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.note_alt),
+                      prefixIcon: Icons.note_alt_outlined,
                     ),
                     maxLines: 4,
                     validator: (val) => val == null || val.isEmpty ? 'Requerido' : null,
                   ),
                   const SizedBox(height: 24),
-                  const Text("Evidencia de Finalización (Opcional)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Text(
+                    "Evidencia de Finalización (Opcional)", 
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 16,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   GestureDetector(
                     onTap: _pickImage,
                     child: Container(
                       height: 150,
                       decoration: BoxDecoration(
-                        color: Colors.grey[900],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[700]!),
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
                       ),
                       child: _evidenceImage == null
                         ? const Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.camera_alt, size: 40, color: Colors.grey),
-                              SizedBox(height: 8),
-                              Text("Tomar foto de evidencia", style: TextStyle(color: Colors.grey)),
+                              Icon(Icons.camera_alt_outlined, size: 40, color: Color(0xFF94A3B8)),
+                              const SizedBox(height: 8),
+                              Text("Tomar foto de evidencia", style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.bold)),
                             ],
                           )
                         : ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(_evidenceImage!, fit: BoxFit.cover),
+                            borderRadius: BorderRadius.circular(14),
+                            child: Image.file(_evidenceImage!, fit: BoxFit.cover, width: double.infinity),
                           ),
                     ),
                   ),
                   if (_evidenceImage != null)
                     TextButton.icon(
                       onPressed: () => setState(() => _evidenceImage = null),
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      label: const Text("Quitar foto", style: TextStyle(color: Colors.red)),
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      label: const Text("Quitar foto", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                     ),
                   const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: _submit,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.green,
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF34D399),
+                          Color(0xFF059669),
+                        ],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF059669).withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: const Text('FINALIZAR ACTIVIDAD', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _submit,
+                        borderRadius: BorderRadius.circular(14),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 18),
+                          child: Text(
+                            'FINALIZAR ACTIVIDAD',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),

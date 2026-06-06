@@ -1,4 +1,4 @@
-package com.finhold.finatrack.finatrack
+package com.finatech.fincontrol
 
 import io.flutter.embedding.android.FlutterActivity
 

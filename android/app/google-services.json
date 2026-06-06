@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "37742433346",
+    "project_id": "fincontrol-549fc",
+    "storage_bucket": "fincontrol-549fc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:37742433346:android:a1d60b58f37b32df2dc9db",
+        "android_client_info": {
+          "package_name": "com.finatech.fincontrol"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA40icGsaCWFywqw5s9LCUNrqVB0hAaU0Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

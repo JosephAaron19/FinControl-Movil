@@ -37,9 +37,9 @@ class _IncidentScreenState extends State<IncidentScreen> {
   Future<void> _pickImage() async {
     final XFile? selected = await _picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 50,
-      maxWidth: 1920,
-      maxHeight: 1080,
+      imageQuality: 30,
+      maxWidth: 800,
+      maxHeight: 800,
     );
     if (selected != null) {
       setState(() {

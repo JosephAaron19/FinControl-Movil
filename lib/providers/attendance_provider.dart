@@ -36,7 +36,26 @@ class AttendanceProvider with ChangeNotifier {
   bool get puedeMarcarEntrada => _puedeMarcarEntrada;
   bool get puedeIniciarDescanso => _puedeIniciarDescanso;
   bool get puedeFinalizarDescanso => _puedeFinalizarDescanso;
-  bool get puedeMarcarSalida => _puedeMarcarSalida;
+  bool get puedeMarcarSalida {
+    if (!_puedeMarcarSalida) return false;
+    if (_state.horarioInicioSalida != null) {
+      try {
+        final now = DateTime.now();
+        final parts = _state.horarioInicioSalida!.split(':');
+        if (parts.length >= 2) {
+          final h = int.parse(parts[0]);
+          final m = int.parse(parts[1]);
+          final scheduledStart = DateTime(now.year, now.month, now.day, h, m);
+          if (now.isBefore(scheduledStart)) {
+            return false;
+          }
+        }
+      } catch (e) {
+        print("Error al parsear horarioInicioSalida: $e");
+      }
+    }
+    return true;
+  }
   bool get puedeIniciarActividad => _puedeIniciarActividad;
   bool get puedeFinalizarActividad => _puedeFinalizarActividad;
   Map<String, dynamic>? get actividadEnProceso => _actividadEnProceso;
@@ -175,6 +194,7 @@ class AttendanceProvider with ChangeNotifier {
           _lastSyncTimestamp = syncData['timestamp'];
         }
       }
+      notifyListeners();
     });
   }
 

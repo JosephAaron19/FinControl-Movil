@@ -19,6 +19,7 @@ class AttendanceProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
   ApiService get apiService => _apiService;
   bool _isGpsEnabled = false;
+  bool _hasShownGpsWarning = false;
   Map<String, dynamic>? _userProfile;
   List<AttendanceRecord> _history = [];
   bool _isLoading = false;
@@ -65,6 +66,10 @@ class AttendanceProvider with ChangeNotifier {
   String? _lastSyncTimestamp;
   
   bool get isGpsEnabled => _isGpsEnabled;
+  bool get hasShownGpsWarning => _hasShownGpsWarning;
+  set hasShownGpsWarning(bool value) {
+    _hasShownGpsWarning = value;
+  }
   bool get isActionLoading => _isActionLoading;
   AttendanceState get state => _state;
   Map<String, dynamic>? get userProfile => _userProfile;
@@ -244,36 +249,31 @@ class AttendanceProvider with ChangeNotifier {
       permission = await Geolocator.requestPermission();
     }
 
-    // 2. Si ya dio el permiso normal, pedir el permiso SIEMPRE (Segundo plano crítico)
-    if (permission == LocationPermission.whileInUse) {
-      // En Android 11+ esto abre la configuración para seleccionar "Permitir todo el tiempo"
-      permission = await Geolocator.requestPermission();
-    }
-
-    // 3. Importar permission_handler de forma diferida para pedir ignorar optimización de batería
+    // 2. Pedir permiso de notificaciones push de forma diferida
     try {
-      await _requestBatteryAndBackgroundPermissions();
+      await _requestNotificationPermission();
     } catch(e) {
-      print("Error solicitando permisos de batería: $e");
+      print("Error solicitando permisos de notificaciones: $e");
     }
 
     _isGpsEnabled = await Geolocator.isLocationServiceEnabled();
+    if (_isGpsEnabled) {
+      _hasShownGpsWarning = false;
+    }
     notifyListeners();
 
     Geolocator.getServiceStatusStream().listen((ServiceStatus status) {
       _isGpsEnabled = (status == ServiceStatus.enabled);
+      if (_isGpsEnabled) {
+        _hasShownGpsWarning = false;
+      }
       notifyListeners();
     });
   }
 
-  Future<void> _requestBatteryAndBackgroundPermissions() async {
+  Future<void> _requestNotificationPermission() async {
     if (await Permission.notification.isDenied) {
       await Permission.notification.request();
-    }
-
-    // Solicitar permiso de actividad en segundo plano agresiva y evadir matar la app
-    if (await Permission.ignoreBatteryOptimizations.isDenied) {
-      await Permission.ignoreBatteryOptimizations.request();
     }
   }
 

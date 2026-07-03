@@ -8,6 +8,7 @@ import 'history_screen.dart';
 import 'login_screen.dart';
 import 'activity_form_screen.dart';
 import 'activity_finish_screen.dart';
+import 'package:geolocator/geolocator.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -92,9 +93,80 @@ class _HomeContentState extends State<HomeContent> {
     // Recargar datos del backend al abrir la pantalla principal
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        Provider.of<AttendanceProvider>(context, listen: false).loadInitialData();
+        final provider = Provider.of<AttendanceProvider>(context, listen: false);
+        provider.loadInitialData();
+        _checkGpsStatus(provider);
       }
     });
+  }
+
+  void _checkGpsStatus(AttendanceProvider provider) async {
+    final isGpsEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!isGpsEnabled && !provider.hasShownGpsWarning) {
+      provider.hasShownGpsWarning = true;
+      if (mounted) {
+        _showGpsWarningDialog();
+      }
+    }
+  }
+
+  void _showGpsWarningDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          icon: const Icon(
+            Icons.warning_amber_rounded,
+            color: Color(0xFFF59E0B),
+            size: 48,
+          ),
+          title: const Text(
+            "GPS Desactivado",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          content: const Text(
+            "El GPS de su dispositivo se encuentra desactivado. "
+            "No podrá empezar su jornada ni realizar marcaciones hasta que lo active.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 14,
+            ),
+          ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0EA5E9),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: const Text(
+                  "Aceptar",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

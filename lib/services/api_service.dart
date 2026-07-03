@@ -11,10 +11,10 @@ class ApiService {
   // static const String baseUrl = 'https://apifincontrol.finatech.com.pe/api';
 
   // 3. Para Dispositivo Móvil Físico (conectado al mismo Wi-Fi que tu PC):
-  // static const String baseUrl = 'http://192.168.1.128:8001/api';
+    static const String baseUrl = 'http://192.168.1.128:8001/api';
 
   // 4. URL de producción de la API:
-  static const String baseUrl = 'https://apifincontrol.finatech.com.pe/api';
+  // static const String baseUrl = 'https://apifincontrol.finatech.com.pe/api';
   // ===================================================================
 
   String? _token;
